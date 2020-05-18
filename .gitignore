@@ -1,0 +1,10 @@
+__pycache__/
+
+.idea/
+.code-workspace
+.vscode
+
+.ipynb_checkpoints
+
+.venv/
+venv/
