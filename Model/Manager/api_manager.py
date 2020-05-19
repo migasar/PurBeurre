@@ -6,7 +6,7 @@ and deal with the reformatting of the data.
 
 import requests 
 
-import Static.constants as constants
+import Static.constant as constant
 
 
 class API:
@@ -68,7 +68,7 @@ class APICall:
 # # # TEST: Print the status code of the response.
 # # print(f"response.status_code : {str(response.status_code)}")
 
-api_products = API(constants.PRODUCTS_URL, constants.PRODUCTS_PARAMETERS)
+api_products = API(constant.PRODUCTS_URL, constant.PRODUCTS_PARAMETERS)
 payload_products = APICall(api_products)
 cargo = payload_products.format_response()
 
@@ -79,7 +79,7 @@ cargo = payload_products.format_response()
 
 
 api_categories = API(
-    constants.CATEGORIES_URL, constants.CATEGORIES_PARAMETERS
+    constant.CATEGORIES_URL, constant.CATEGORIES_PARAMETERS
 )
 payload_categories = APICall(api_categories)
 manifest = payload_categories.format_response()

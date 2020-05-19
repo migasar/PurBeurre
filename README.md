@@ -2,8 +2,8 @@
 
 ## Intent of the project
 
-It is a school project for a course with OpenClassrooms.
-It is made to practice how to use an API and a database in web development.
+It is a school project for a course with OpenClassrooms.  
+It is made to practice how to use an API and a database in web development.  
 
 ## Development queue
 

@@ -8,4 +8,5 @@ __pycache__/
 
 venv/
 
+Static/setting.py
 Static/settings.py
