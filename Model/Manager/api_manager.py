@@ -21,7 +21,7 @@ class API:
     #     self.parameters.update(parameter)
 
 
-class APICall:
+class APICaller:
     """
     Creates a request to connect with an API and to collect data from a website
     """
@@ -48,6 +48,7 @@ class APICall:
 
         if self.response is None:
             return "The request has yet to be made. "
+
         else:
             return "status code of the response : {}".format(str(self.response.status_code))
 
@@ -56,9 +57,9 @@ class APICall:
 
         if self.response is None:
             return "The request has yet to be made. "
+
         else:
             self.payload = self.response.json()
-
             return self.payload
 
 
@@ -68,9 +69,9 @@ class APICall:
 # # # TEST: Print the status code of the response.
 # # print(f"response.status_code : {str(response.status_code)}")
 
-api_products = API(constant.PRODUCTS_URL, constant.PRODUCTS_PARAMETERS)
-payload_products = APICall(api_products)
-cargo = payload_products.format_response()
+# api_products = API(constant.PRODUCTS_URL, constant.PRODUCTS_PARAMETERS)
+# payload_products = APICaller(api_products)
+# cargo = payload_products.format_response()
 
 # # TEST:
 # print(f"URL of API for products : {api_products.url}")
@@ -78,11 +79,11 @@ cargo = payload_products.format_response()
 # print(f"payload_products response : {payload_products.test_response()}")
 
 
-api_categories = API(
-    constant.CATEGORIES_URL, constant.CATEGORIES_PARAMETERS
-)
-payload_categories = APICall(api_categories)
-manifest = payload_categories.format_response()
+# api_categories = API(
+#     constant.CATEGORIES_URL, constant.CATEGORIES_PARAMETERS
+# )
+# payload_categories = APICaller(api_categories)
+# manifest = payload_categories.format_response()
 
 
 class DataCleaner:
