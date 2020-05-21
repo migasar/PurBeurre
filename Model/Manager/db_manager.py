@@ -8,179 +8,100 @@ The ORM handles every transaction between the database of the program and the ot
 Every coding elements with SQL should be regrouped in the ORM.
 """
 
-
 import mysql.connector as mysql
 from mysql.connector import Error
 
-import Static.setting as setting 
+import Static.setting as setting  # module with private settings
 import Static.sql_query as query
 
 
-params_server = {
-    'host_name': setting.DB_HOST,
-    'user_name': setting.DB_USER,
-    'user_password': setting.DB_PASSWORD,
-    # 'db_name': setting.DB_NAME
-}
+class Borg:
+    """
+    Metaclass to apply the Borg pattern to a subclass.
+    It makes sure that only one instance of a class is created.
 
-params_database = {
-    'host_name': setting.DB_HOST, 
-    'user_name': setting.DB_USER, 
-    'user_password': setting.DB_PASSWORD, 
-    'db_name': setting.DB_NAME
-    }
+    The Borg pattern is an alternative to the Singleton.
+    It doesn't really block the creation of over instances,
+    but it ensures that all instances share state and behavior.
 
-create_database_query = "CREATE DATABASE IF NOT EXISTS pur_beurre"
-create_db_query = "CREATE DATABASE IF NOT EXISTS " + str(db_name)
+    The subclass behaves as if only the last created instance is callable,
+    which gives the possibility to modify the instance.
+    """
 
+    __shared_state = {}
 
-class DBConnector:
-
-    __shared_state = {}  # Borg design pattern, shared state
-
-    def __init__(self, **params):
+    def __init__(self):
         self.__dict__ = self.__shared_state
-        self.connection = self.get_connection(params)
-
-    def get_connection(self, host_name, user_name, user_password, db_name=None):
-        """
-        Create a connection with MySQL server, 
-        if db_name is specified, create a connection specifically to a database
-        """
-
-        if db_name is not None:  # get a connection to a specific database
-            connection = None
-            try:
-                connection = mysql.connect(
-                    host=host_name,
-                    user=user_name,
-                    passwd=user_password,
-                    database=db_name
-                )
-                print("Connection to MySQL database successful")
-            except Error as e:
-                print(f"The error'{e}' occured")
-            self.connection = connection
-            return self.connection
-            
-        else:  # get a connection to the server
-            connection = None
-            try:
-                connection = mysql.connect(
-                    host=host_name,
-                    user=user_name,
-                    passwd=user_password
-                )
-                print("Connection to MySQL server successful")
-            except Error as e:
-                print(f"The error'{e}' occured")
-            self.connection = connection
-            return self.connection
 
 
-        # def get_connection_server(self, host_name, user_name, user_password):
-        #     connection = None
-        #     try:
-        #         connection = mysql.connect(
-        #             host=host_name,
-        #             user=user_name,
-        #             passwd=user_password
-        #         )
-        #         print("Connection to MySQL server successful")
-        #     except Error as e:
-        #         print(f"The error'{e}' occured")
-        #     self.connection = connection
-        #     return self.connection
-        
-        # def get_connection_db(self, host_name, user_name, user_password, db_name=None):
-        #     connection = None
-        #     try:
-        #         connection = mysql.connect(
-        #             host=host_name,
-        #             user=user_name,
-        #             passwd=user_password,
-        #             database=db_name
-        #         )
-        #         print("Connection to MySQL database successful")
-        #     except Error as e:
-        #         print(f"The error'{e}' occured")
-        #     self.connection = connection
-        #     return self.connection
-
-    def get_cursor(self):
-        """
-        Return the instance of cursor.
-        The cursor is the object that interact with the DB server.
-        It execute operations such as SQL statements.
-        """
-        if self.connection is None:
-            print("No connection on DB to instantiate the cursor ")
-        else:
-            self.cursor = self.connection.cursor()
-        return self.cursor
-
-
-class DBHandler:
-    
-    def __init__(self, db_name):
-        self.db_name = db_name
-        self.connection = DBConnector()
-        self.cursor = connection.get_cursor()
-
-
-    def execute_query(self, query):
-        """Wrapper function to handle SQL queries """
-        try:
-            self.cursor.execute(query)
-            self.connection.commit()
-            print("Query executed successfully")
-        except Error as e:
-            print(f"The error '{e}' occured")
-
-
-    def create_database(self, db_name):
-        """Create the database with the function execute_query() """
-        try:
-            #  db_query = "CREATE DATABASE IF NOT EXISTS " + str(self.db_name)
-            db_query = query.CREATE_DB_QUERY + str(self.db_name)
-            self.execute_query(db_query)
-            print("Database created")
-        except Error as e:
-            print(f"The error '{e}' occured")
-
-    def create_table(self):
-        """Create the tables with the function execute_query() """
-        try:
-            table_product_query = query.CREATE_TABLE_PRODUCT
-            self.execute_query(table_product_query)
-            print("Table product created")
-        except Error as e:
-            print(f"The error '{e}' occured")
-
-
-
-######
-######
-
-
-class DBConnection:  # mentored
+class DBConnector(Borg):
     """
     Initiate the connection to MySQL server,
     and create an object to interact with it.
     """
 
-    def __init__(self):
-        self.connector = None
+    def __init__(self, host_name, user_name, user_password, db_name=None):
+        Borg.__init__(self)
 
-    @classmethod  # singleton pattern
-    def get_instance(cls):
+        self.host_name = host_name
+        self.user_name = user_name
+        self.user_password = user_password
+        self.db_name = db_name
+
+        self.connection = self.get_connection(self.host_name, self.user_name, self.user_password, self.db_name)
+
+        self.cursor = self.get_cursor()
+
+    def get_connection(self, host_name, user_name, user_password, db_name=None):
         """
-        Return the instance of DBConnector.
-        If no instance exists, create one.
+        Create a connection with MySQL server,
+        if db_name is specified, create a connection specifically to a database
         """
-        if cls.instance is None:
-            cls.instance = cls()
-        return cls.instance
+
+        if db_name is None:
+            # create a general connection to MySQL server
+            self.connection = self.get_connection_server(host_name, user_name, user_password)
+
+            return self.connection
+
+        else:
+            # create a specific connection to a database
+            self.connection = self.get_connection_db(host_name, user_name, user_password, db_name)
+
+            return self.connection
+
+    def get_connection_server(self, host_name, user_name, user_password):
+        """Create a connection to MySQL server """
+
+        connection = None
+        try:
+            connection = mysql.connect(
+                host=host_name,
+                user=user_name,
+                passwd=user_password
+            )
+            print("Connection to server successful")
+        except Error as e:
+            print(f"The error'{e}' occured")
+        self.connection = connection
+        return self.connection
+
+    def get_connection_db(self, host_name, user_name, user_password, db_name=None):
+        """Create a connection to a database """
+
+        connection = None
+        try:
+            connection = mysql.connect(
+                host=host_name,
+                user=user_name,
+                passwd=user_password,
+                database=db_name
+            )
+            print("Connection to database successful")
+        except Error as e:
+            print(f"The error'{e}' occured")
+        self.connection = connection
+        return self.connection
 
     def get_cursor(self):
         """
@@ -188,10 +109,13 @@ class DBConnection:  # mentored
         The cursor is the object that interact with the DB server.
         It execute operations such as SQL statements.
         """
+
         if self.connection is None:
             print("No connection on DB to instantiate the cursor ")
+
         else:
             self.cursor = self.connection.cursor()
+
         return self.cursor
 
 
@@ -201,18 +125,83 @@ class DBManager:
     Create the database otherwise.
     """
 
-    def __init__(self):
-        self.creator = None
+    def __init__(self, host_name, user_name, user_password, db_name):
 
-    @classmethod  # singleton pattern
-    def get_instance(cls):
-        """
-        Return  the instance of DBManager.
-        If no instance exists, create one.
-        """
-        if cls.instance is None:
-            cls.instance = cls()
-        return cls.instance
+        self.host_name = host_name
+        self.user_name = user_name
+        self.user_password = user_password
+
+        self.db_name = db_name
+
+        self.connection = None
+        self.cursor = None
+
+    def connect_server(self):
+        """Create a connection to the server"""
+
+        self.connection = DBConnector(self.host_name, self.user_name, self.user_password)
+        self.cursor = self.connection.cursor
+        return self.connection, self.cursor
+
+    def connect_database(self):
+        """Create a connection to the database"""
+
+        if self.connection is not None:
+            if self.connection.db_name != self.db_name:
+                self.connection = DBConnector(self.host_name, self.user_name, self.user_password, db_name=self.db_name)
+                self.cursor = self.connection.cursor
+                return self.connection, self.cursor
+
+    def create_database(self):
+        """Create the database with the function execute_query() """
+
+        self.connect_server()
+
+        try:
+            # db_query = "CREATE DATABASE IF NOT EXISTS " + str(self.db_name)
+            db_query = query.CREATE_DB + str(self.db_name)
+            self.execute_query(db_query)
+            print("Database created")
+
+            return self.connect_database()
+
+        except Error as e:
+            print(f"The error '{e}' occured")
+
+    def create_table(self, sql):
+        """Create a table with the function execute_query() """
+
+        try:
+            self.execute_query(sql)
+            print("Table created")
+        except Error as e:
+            print(f"The error '{e}' occured")
+
+    def build_database(self):
+        """Regroup the methods to build the database 'purbeurre' """
+
+        try:
+            self.create_table(query.CREATE_TABLE_PRODUCT)
+            print("Table product created")
+
+            self.create_table(query.CREATE_TABLE_CATEGORY)
+            print("Table category created")
+
+            self.create_table(query.CREATE_TABLE_PROD_CATEGORY)
+            print("Table prod_category created")
+
+        except Error as e:
+            print(f"The error '{e}' occured")
+
+    def execute_query(self, sql):
+        """Wrapper function to handle SQL queries """
+
+        try:
+            self.cursor.execute(sql)
+            # self.connection.commit()
+            print("Query executed successfully")
+        except Error as e:
+            print(f"The error '{e}' occured")
 
 
 class Database:
@@ -220,18 +209,30 @@ class Database:
     Describe the database.
     """
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, host_name, user_name, user_password, db_name):
+
+        self.db_name = db_name
+
+        self.host_name = host_name
+        self.user_name = user_name
+        self.user_password = user_password
+
+        self.connector = DBConnector(self.host_name, self.user_name, self.user_password)
+        self.cursor = self.connector.cursor
+
+        self.manager = DBManager(self.host_name, self.user_name, self.user_password, db_name=self.db_name)
+        self.db = self.manager.create_database()
 
     def get_instance(self):
         """Return an instance of the database. """
+        pass
 
     def get_name(self):
         """Return the name of the database. """
         pass
 
     def get_column_name(self):
-        """Return the name of the colimns. """
+        """Return the name of the columns. """
         pass
 
     def get_column_type(self):
@@ -239,18 +240,18 @@ class Database:
         pass
 
 
-class TableManager:
-    """
-    Create the tables of the database and handle methods to modify the tables.
-    """
-
-    def __init__(self, name):
-        self.name = name
-
-
-class Table:
-    """Describe a table. """
-    pass
+# class TableManager:
+#     """
+#     Create the tables of the database and handle methods to modify the tables.
+#     """
+#
+#     def __init__(self, name):
+#         self.name = name
+#
+#
+# class Table:
+#     """Describe a table. """
+#     pass
 
 
 class DataInsertionTable:
