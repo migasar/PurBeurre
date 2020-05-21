@@ -1,7 +1,7 @@
 # CREATE DATABASE
 
-CREATE_DATABASE_QUERY = "CREATE DATABASE IF NOT EXISTS pur_beurre"
-CREATE_DB_QUERY = "CREATE DATABASE IF NOT EXISTS "
+CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS pur_beurre"
+CREATE_DB = "CREATE DATABASE IF NOT EXISTS "
 
 
 # CREATE TABLES
@@ -75,3 +75,16 @@ VALUES
 # cursor = connection.cursor()
 # cursor.executemany(sql, val)
 # connection.commit()
+
+
+# GENERAL METHODS
+
+DROP_DATABASE = """DROP DATABASE purbeurre"""
+DROP_DB = """DROP DATABASE"""
+
+SHOW_DBS = """SHOW DATABASES"""
+# databases = cursor.fetchall()
+# print(databases)
+# for database in databases:
+#     print(database)
+
