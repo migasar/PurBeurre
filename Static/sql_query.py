@@ -62,7 +62,7 @@ VALUES
 # execute_query(connection, create_categories)
 
 
-# 2nd aproach : Insert info with the method cursor.executemany()
+# 2nd approach : Insert info with the method cursor.executemany()
 # which accept 2 parameters :
 # 1. the query string
 # 2. the list of records that you want to insert

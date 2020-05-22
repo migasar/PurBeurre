@@ -244,9 +244,10 @@ class Database:
 #     """
 #     Create the tables of the database and handle methods to modify the tables.
 #     """
-#
 #     def __init__(self, name):
 #         self.name = name
+#
+#       pass
 #
 #
 # class Table:

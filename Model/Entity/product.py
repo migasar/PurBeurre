@@ -5,9 +5,8 @@ Create an object 'Product' to carry the data of the products.
 
 class Product:
 
-    #objects = ProductRepository()
-
-    #objects.get_all() # to call all the instances of product from ProductRepository
+    # objects = ProductRepository()
+    # objects.get_all() # to call all the instances of product from ProductRepository
 
     def __init__(
         self,
@@ -26,7 +25,7 @@ class Product:
         self.categories = categories
         self.stores = stores
 
-    ## methods to be dev in the class ProductRepository :
+    # methods to be dev in the class ProductRepository :
     def get_all(self):
         pass
 
