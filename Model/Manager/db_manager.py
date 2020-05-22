@@ -11,6 +11,8 @@ Every coding elements with SQL should be regrouped in the ORM.
 import mysql.connector as mysql
 from mysql.connector import Error
 
+import Static.database_creation as query
+
 import Static.setting as setting  # module with private settings
 import Static.sql_query as query
 
@@ -48,60 +50,52 @@ class DBConnector(Borg):
         self.user_password = user_password
         self.db_name = db_name
 
-        self.connection = self.get_connection(self.host_name, self.user_name, self.user_password, self.db_name)
+        self.connection = self.set_connection()
 
         self.cursor = self.get_cursor()
 
-    def get_connection(self, host_name, user_name, user_password, db_name=None):
+    def set_connection(self):
         """
         Create a connection with MySQL server,
         if db_name is specified, create a connection specifically to a database
         """
 
-        if db_name is None:
+        if self.db_name is None:
             # create a general connection to MySQL server
-            self.connection = self.get_connection_server(host_name, user_name, user_password)
+
+            connection = None
+            try:
+                connection = mysql.connect(
+                    host=self.host_name,
+                    user=self.user_name,
+                    passwd=self.user_password
+                )
+                print("Connection to server successful")
+
+            except Error as e:
+                print(f"The error'{e}' occured")
+            self.connection = connection
 
             return self.connection
 
         else:
             # create a specific connection to a database
-            self.connection = self.get_connection_db(host_name, user_name, user_password, db_name)
+            connection = None
+
+            try:
+                connection = mysql.connect(
+                    host=self.host_name,
+                    user=self.user_name,
+                    passwd=self.user_password,
+                    database=self.db_name
+                )
+                print("Connection to database successful")
+
+            except Error as e:
+                print(f"The error'{e}' occured")
+            self.connection = connection
 
             return self.connection
-
-    def get_connection_server(self, host_name, user_name, user_password):
-        """Create a connection to MySQL server """
-
-        connection = None
-        try:
-            connection = mysql.connect(
-                host=host_name,
-                user=user_name,
-                passwd=user_password
-            )
-            print("Connection to server successful")
-        except Error as e:
-            print(f"The error'{e}' occured")
-        self.connection = connection
-        return self.connection
-
-    def get_connection_db(self, host_name, user_name, user_password, db_name=None):
-        """Create a connection to a database """
-
-        connection = None
-        try:
-            connection = mysql.connect(
-                host=host_name,
-                user=user_name,
-                passwd=user_password,
-                database=db_name
-            )
-            print("Connection to database successful")
-        except Error as e:
-            print(f"The error'{e}' occured")
-        self.connection = connection
-        return self.connection
 
     def get_cursor(self):
         """
@@ -136,62 +130,67 @@ class DBManager:
         self.connection = None
         self.cursor = None
 
-    def connect_server(self):
-        """Create a connection to the server"""
+    def get_connection(self, _server=True):
 
-        self.connection = DBConnector(self.host_name, self.user_name, self.user_password)
-        self.cursor = self.connection.cursor
-        return self.connection, self.cursor
+        if _server is True:
+            """Create a connection to the server"""
 
-    def connect_database(self):
-        """Create a connection to the database"""
+            self.connection = DBConnector(self.host_name, self.user_name, self.user_password)
+            self.cursor = self.connection.cursor
 
-        if self.connection is not None:
-            if self.connection.db_name != self.db_name:
-                self.connection = DBConnector(self.host_name, self.user_name, self.user_password, db_name=self.db_name)
-                self.cursor = self.connection.cursor
-                return self.connection, self.cursor
+            return self.connection, self.cursor
 
-    def create_database(self):
-        """Create the database with the function execute_query() """
+        else:  # _server is False
+            """Create a connection to the database"""
 
-        self.connect_server()
+            self.connection = DBConnector(self.host_name, self.user_name, self.user_password,
+                                          db_name=self.db_name)
+            self.cursor = self.connection.cursor
 
-        try:
-            # db_query = "CREATE DATABASE IF NOT EXISTS " + str(self.db_name)
-            db_query = query.CREATE_DB + str(self.db_name)
-            self.execute_query(db_query)
-            print("Database created")
+            return self.connection, self.cursor
 
-            return self.connect_database()
-
-        except Error as e:
-            print(f"The error '{e}' occured")
-
-    def create_table(self, sql):
-        """Create a table with the function execute_query() """
-
-        try:
-            self.execute_query(sql)
-            print("Table created")
-        except Error as e:
-            print(f"The error '{e}' occured")
+    # def create_database(self):
+    #     """Create the database with the function execute_query() """
+    #
+    #     self.get_connection(_server=True)
+    #     try:
+    #         db_query = query.CREATE_DB + str(self.db_name)
+    #         self.execute_query(db_query)
+    #         print("Database created")
+    #
+    #         return self.get_connection(_server=False)
+    #
+    #     except Error as e:
+    #         print(f"The error '{e}' occured")
+    #
+    # def create_table(self, sql):
+    #     """Create a table with the function execute_query() """
+    #
+    #     try:
+    #         self.execute_query(sql)
+    #         print("Table created")
+    #     except Error as e:
+    #         print(f"The error '{e}' occured")
+    #
+    # def build_database(self):
+    #     """Regroup the methods to build the database 'purbeurre' """
+    #
+    #     try:
+    #         self.create_table(query.CREATE_TABLE_PRODUCT)
+    #         print("Table product created")
+    #
+    #         self.create_table(query.CREATE_TABLE_CATEGORY)
+    #         print("Table category created")
+    #
+    #         self.create_table(query.CREATE_TABLE_PROD_CATEGORY)
+    #         print("Table prod_category created")
+    #
+    #     except Error as e:
+    #         print(f"The error '{e}' occured")
 
     def build_database(self):
-        """Regroup the methods to build the database 'purbeurre' """
-
-        try:
-            self.create_table(query.CREATE_TABLE_PRODUCT)
-            print("Table product created")
-
-            self.create_table(query.CREATE_TABLE_CATEGORY)
-            print("Table category created")
-
-            self.create_table(query.CREATE_TABLE_PROD_CATEGORY)
-            print("Table prod_category created")
-
-        except Error as e:
-            print(f"The error '{e}' occured")
+        """Fetch a SQL file and use it as a schema to build the database"""
+        pass
 
     def execute_query(self, sql):
         """Wrapper function to handle SQL queries """
