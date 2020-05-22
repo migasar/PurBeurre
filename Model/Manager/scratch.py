@@ -1,7 +1,7 @@
 import mysql.connector as mysql
 from mysql.connector import Error
 
-import Static.setting as setting
+from Static import setting
 import Static.sql_query as query
 
 import Model.Manager.db_manager as manager
