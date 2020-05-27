@@ -11,7 +11,7 @@ Every coding elements with SQL should be regrouped in the ORM.
 import mysql.connector as mysql
 from mysql.connector import Error
 
-import Static.database_creation as query
+import os
 
 import Static.setting as setting  # module with private settings
 import Static.sql_query as query
@@ -130,9 +130,9 @@ class DBManager:
         self.connection = None
         self.cursor = None
 
-    def get_connection(self, _server=True):
+    def get_connection(self, _dbalive=True):
 
-        if _server is True:
+        if _dbalive is True:
             """Create a connection to the server"""
 
             self.connection = DBConnector(self.host_name, self.user_name, self.user_password)
@@ -140,7 +140,7 @@ class DBManager:
 
             return self.connection, self.cursor
 
-        else:  # _server is False
+        else:  # _dbalive is False
             """Create a connection to the database"""
 
             self.connection = DBConnector(self.host_name, self.user_name, self.user_password,
@@ -149,16 +149,48 @@ class DBManager:
 
             return self.connection, self.cursor
 
+    def build_database(self, *args):
+        """Fetch a SQL file and use it as a schema to build the database"""
+
+        # create a path object to reach the sql file
+        filename = os.path.join(os.getcwd(), *args)  # args='database_creation.sql'
+
+        # open, read and close the file
+        with open(filename, 'r') as f:
+            sql_file = f.read()
+
+        sql_commands = sql_file.split(';')
+
+        # execute the queries from the sql file
+        for command in sql_commands:
+            try:
+                self.cursor.execute(command)
+
+            except IOError as msg:
+                print(f"Commands skipped : {msg}")
+
+        self.get_connection(_dbalive=True)
+
+    def execute_query(self, sql):
+        """Wrapper function to handle SQL queries """
+
+        try:
+            self.cursor.execute(sql)
+            # self.connection.commit()
+            print("Query executed successfully")
+        except Error as e:
+            print(f"The error '{e}' occured")
+
     # def create_database(self):
     #     """Create the database with the function execute_query() """
     #
-    #     self.get_connection(_server=True)
+    #     self.get_connection(_dbalive=True)
     #     try:
     #         db_query = query.CREATE_DB + str(self.db_name)
     #         self.execute_query(db_query)
     #         print("Database created")
     #
-    #         return self.get_connection(_server=False)
+    #         return self.get_connection(_dbalive=False)
     #
     #     except Error as e:
     #         print(f"The error '{e}' occured")
@@ -188,57 +220,43 @@ class DBManager:
     #     except Error as e:
     #         print(f"The error '{e}' occured")
 
-    def build_database(self):
-        """Fetch a SQL file and use it as a schema to build the database"""
-        pass
 
-    def execute_query(self, sql):
-        """Wrapper function to handle SQL queries """
-
-        try:
-            self.cursor.execute(sql)
-            # self.connection.commit()
-            print("Query executed successfully")
-        except Error as e:
-            print(f"The error '{e}' occured")
-
-
-class Database:
-    """
-    Describe the database.
-    """
-
-    def __init__(self, host_name, user_name, user_password, db_name):
-
-        self.db_name = db_name
-
-        self.host_name = host_name
-        self.user_name = user_name
-        self.user_password = user_password
-
-        self.connector = DBConnector(self.host_name, self.user_name, self.user_password)
-        self.cursor = self.connector.cursor
-
-        self.manager = DBManager(self.host_name, self.user_name, self.user_password, db_name=self.db_name)
-        self.db = self.manager.create_database()
-
-    def get_instance(self):
-        """Return an instance of the database. """
-        pass
-
-    def get_name(self):
-        """Return the name of the database. """
-        pass
-
-    def get_column_name(self):
-        """Return the name of the columns. """
-        pass
-
-    def get_column_type(self):
-        """Return the type of the columns. """
-        pass
-
-
+# class Database:
+#     """
+#     Describe the database.
+#     """
+#
+#     def __init__(self, host_name, user_name, user_password, db_name):
+#
+#         self.db_name = db_name
+#
+#         self.host_name = host_name
+#         self.user_name = user_name
+#         self.user_password = user_password
+#
+#         self.connector = DBConnector(self.host_name, self.user_name, self.user_password)
+#         self.cursor = self.connector.cursor
+#
+#         self.manager = DBManager(self.host_name, self.user_name, self.user_password, db_name=self.db_name)
+#         self.db = self.manager.create_database()
+#
+#     def get_instance(self):
+#         """Return an instance of the database. """
+#         pass
+#
+#     def get_name(self):
+#         """Return the name of the database. """
+#         pass
+#
+#     def get_column_name(self):
+#         """Return the name of the columns. """
+#         pass
+#
+#     def get_column_type(self):
+#         """Return the type of the columns. """
+#         pass
+#
+#
 # class TableManager:
 #     """
 #     Create the tables of the database and handle methods to modify the tables.
@@ -252,10 +270,11 @@ class Database:
 # class Table:
 #     """Describe a table. """
 #     pass
+#
+#
+# class DataInsertionTable:
+#     """
+#     Create data in a table and handle methods to modify them.
+#     """
+#     pass
 
-
-class DataInsertionTable:
-    """
-    Create data in a table and handle methods to modify them.
-    """
-    pass
