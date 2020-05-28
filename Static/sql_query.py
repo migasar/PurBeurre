@@ -1,41 +1,115 @@
 # CREATE DATABASE
 
-CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS pur_beurre"
-CREATE_DB = "CREATE DATABASE IF NOT EXISTS "
+CREATE_DB_PURBEURRE = " CREATE DATABASE IF NOT EXISTS `purbeurre` DEFAULT CHARACTER SET utf8 ; "
+CREATE_DB = " CREATE DATABASE IF NOT EXISTS "
 
 
 # CREATE TABLES
 
 # Create one of the main table : 'product'
 CREATE_TABLE_PRODUCT = """
-CREATE TABLE IF NOT EXISTS product (
-    id INT AUTO_INCREMENT,
-    product_name VARCHAR(250) NOT NULL, 
-    description TEXT, 
-    nutriscore INT NOT NULL, 
-    off_url VARCHAR(500),
-    PRIMARY KEY (id)
-) ENGINE = InnoDB
+DROP TABLE IF EXISTS `purbeurre`.`product` ;
+
+CREATE TABLE IF NOT EXISTS `purbeurre`.`product` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `product_name` VARCHAR(250) NULL,
+  `description` LONGTEXT NULL,
+  `nutriscore` INT NULL,
+  `off_url` VARCHAR(500) NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
 """
 
 # Create one of the main table : 'category'
 CREATE_TABLE_CATEGORY = """
-CREATE TABLE IF NOT EXISTS category (
-    id INT AUTO_INCREMENT,
-    category_name VARCHAR(250) NOT NULL, 
-    count INT NOT NULL,
-    PRIMARY KEY (id)
-) ENGINE = InnoDB
+DROP TABLE IF EXISTS `purbeurre`.`category` ;
+
+CREATE TABLE IF NOT EXISTS `purbeurre`.`category` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `category_name` VARCHAR(250) NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
 """
 
+# Create one of the main table : 'store'
+CREATE_TABLE_STORE = """
+DROP TABLE IF EXISTS `purbeurre`.`store` ;
+
+CREATE TABLE IF NOT EXISTS `purbeurre`.`store` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `store_name` VARCHAR(250) NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB;
+"""
+
+
+# Create a (sort of) table of association : 'favorite'
+CREATE_TABLE_FAVORITE = """
+DROP TABLE IF EXISTS `purbeurre`.`favorite` ;
+
+CREATE TABLE IF NOT EXISTS `purbeurre`.`favorite` (
+  `old_product_id` INT NOT NULL,
+  `substitute_product_id` INT NOT NULL,
+  INDEX `fk_favorite_product1_idx` (`old_product_id` ASC),
+  INDEX `fk_favorite_product2_idx` (`substitute_product_id` ASC),
+  PRIMARY KEY (`old_product_id`, `substitute_product_id`),
+  CONSTRAINT `fk_favorite_product1`
+    FOREIGN KEY (`old_product_id`)
+    REFERENCES `purbeurre`.`product` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_favorite_product2`
+    FOREIGN KEY (`substitute_product_id`)
+    REFERENCES `purbeurre`.`product` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+"""
+
+# Create a table of association : 'product_category'
 CREATE_TABLE_PROD_CATEGORY = """
-CREATE TABLE IF NOT EXISTS product_category (
-    product_id INT NOT NULL,
-    category_id INT NOT NULL,
-    FOREIGN KEY fk_product_id (product_id) REFERENCES product(id),
-    FOREIGN KEY fk_category_id (category_id) REFERENCES category(id),
-    PRIMARY KEY (product_id, category_id)
-) ENGINE = InnoDB
+DROP TABLE IF EXISTS `purbeurre`.`product_category` ;
+
+CREATE TABLE IF NOT EXISTS `purbeurre`.`product_category` (
+  `product_id` INT NOT NULL,
+  `category_id` INT NOT NULL,
+  INDEX `fk_product_category_category_idx` (`category_id` ASC),
+  INDEX `fk_product_category_product1_idx` (`product_id` ASC),
+  PRIMARY KEY (`product_id`, `category_id`),
+  CONSTRAINT `fk_product_category_category`
+    FOREIGN KEY (`category_id`)
+    REFERENCES `purbeurre`.`category` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_product_category_product1`
+    FOREIGN KEY (`product_id`)
+    REFERENCES `purbeurre`.`product` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+"""
+
+# Create a table of association : 'product_store'
+CREATE_TABLE_PROD_STORE = """
+DROP TABLE IF EXISTS `purbeurre`.`product_store` ;
+
+CREATE TABLE IF NOT EXISTS `purbeurre`.`product_store` (
+  `product_id` INT NOT NULL,
+  `store_id` INT NOT NULL,
+  INDEX `fk_product_store_store1_idx` (`store_id` ASC),
+  INDEX `fk_product_store_product1_idx` (`product_id` ASC),
+  PRIMARY KEY (`product_id`, `store_id`),
+  CONSTRAINT `fk_product_store_store1`
+    FOREIGN KEY (`store_id`)
+    REFERENCES `purbeurre`.`store` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_product_store_product1`
+    FOREIGN KEY (`product_id`)
+    REFERENCES `purbeurre`.`product` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
 """
 
 

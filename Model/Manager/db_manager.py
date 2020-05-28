@@ -52,7 +52,7 @@ class DBConnector(Borg):
 
         self.connection = self.set_connection()
 
-        self.cursor = self.get_cursor()
+        self.cursor = self.set_cursor()
 
     def set_connection(self):
         """
@@ -97,7 +97,7 @@ class DBConnector(Borg):
 
             return self.connection
 
-    def get_cursor(self):
+    def set_cursor(self):
         """
         Return the instance of cursor.
         The cursor is the object that interact with the DB server.
@@ -127,20 +127,15 @@ class DBManager:
 
         self.db_name = db_name
 
-        self.connection = None
+        self._server = False
+        # the value of _server is modified by the instanciation of connection
         self.cursor = None
+        # the value of cursor is modified by the instanciation of connection
+        self.connection = self.get_connection()
 
-    def get_connection(self, _dbalive=True):
+    def get_connection(self):
 
-        if _dbalive is True:
-            """Create a connection to the server"""
-
-            self.connection = DBConnector(self.host_name, self.user_name, self.user_password)
-            self.cursor = self.connection.cursor
-
-            return self.connection, self.cursor
-
-        else:  # _dbalive is False
+        if self._server is True:
             """Create a connection to the database"""
 
             self.connection = DBConnector(self.host_name, self.user_name, self.user_password,
@@ -148,6 +143,15 @@ class DBManager:
             self.cursor = self.connection.cursor
 
             return self.connection, self.cursor
+
+        else:  # _server is False
+            """Create a connection to the server"""
+
+            self.connection = DBConnector(self.host_name, self.user_name, self.user_password)
+            self.cursor = self.connection.cursor
+            self._server = True
+
+            return self.connection, self.cursor, self._server
 
     def build_database(self, *args):
         """Fetch a SQL file and use it as a schema to build the database"""
@@ -169,54 +173,36 @@ class DBManager:
             except IOError as msg:
                 print(f"Commands skipped : {msg}")
 
-        self.get_connection(_dbalive=True)
+        self.get_connection()
 
-    def execute_query(self, sql):
-        """Wrapper function to handle SQL queries """
+    def create_database(self):
+        """Create the database with the execution of a sql query """
 
+        self.get_connection()
         try:
-            self.cursor.execute(sql)
-            # self.connection.commit()
-            print("Query executed successfully")
+            self.cursor.execute(query.CREATE_DB_PURBEURRE)
+            print("Database created")
+
         except Error as e:
             print(f"The error '{e}' occured")
 
-    # def create_database(self):
-    #     """Create the database with the function execute_query() """
-    #
-    #     self.get_connection(_dbalive=True)
-    #     try:
-    #         db_query = query.CREATE_DB + str(self.db_name)
-    #         self.execute_query(db_query)
-    #         print("Database created")
-    #
-    #         return self.get_connection(_dbalive=False)
-    #
-    #     except Error as e:
-    #         print(f"The error '{e}' occured")
-    #
-    # def create_table(self, sql):
-    #     """Create a table with the function execute_query() """
+    def create_table(self, sql):
+        """Create a table with the execution of a sql query """
+
+        try:
+            self.cursor.execute(sql)
+            print("Table created")
+
+        except Error as e:
+            print(f"The error '{e}' occured")
+
+    # def execute_query(self, sql):
+    #     """Wrapper function to handle SQL queries """
     #
     #     try:
-    #         self.execute_query(sql)
-    #         print("Table created")
-    #     except Error as e:
-    #         print(f"The error '{e}' occured")
-    #
-    # def build_database(self):
-    #     """Regroup the methods to build the database 'purbeurre' """
-    #
-    #     try:
-    #         self.create_table(query.CREATE_TABLE_PRODUCT)
-    #         print("Table product created")
-    #
-    #         self.create_table(query.CREATE_TABLE_CATEGORY)
-    #         print("Table category created")
-    #
-    #         self.create_table(query.CREATE_TABLE_PROD_CATEGORY)
-    #         print("Table prod_category created")
-    #
+    #         self.cursor.execute(sql)
+    #         # self.connection.commit()
+    #         print("Query executed successfully")
     #     except Error as e:
     #         print(f"The error '{e}' occured")
 
@@ -278,3 +264,36 @@ class DBManager:
 #     """
 #     pass
 
+
+def main():
+
+    # INSTANCIATE CONNECTION TO SERVER
+    connection = DBConnector(setting.DB_HOST, setting.DB_USER, setting.DB_PASSWORD)
+    cursor = connection.cursor
+
+
+    # CHECK DATABASES
+    # cursor.execute("DROP DATABASE purbeurre")
+
+    # cursor.execute("SHOW DATABASES")
+    # databases = cursor.fetchall()
+    # for database in databases:
+    #     print(database)
+
+
+    # CREATE DATABASE
+    db_test = DBManager(setting.DB_HOST, setting.DB_USER, setting.DB_PASSWORD, db_name='purbeurre')
+
+    # db_test.build_database('database_creation.sql')
+
+    # db_test.create_database()
+    # db_test.create_table(query.CREATE_TABLE_PRODUCT)
+    # db_test.create_table(query.CREATE_TABLE_CATEGORY)
+    # db_test.create_table(query.CREATE_TABLE_STORE)
+    # db_test.create_table(query.CREATE_TABLE_FAVORITE)
+    # db_test.create_table(query.CREATE_TABLE_PROD_CATEGORY)
+    # db_test.create_table(query.CREATE_TABLE_PROD_STORE)
+
+
+if __name__ == "__main__":
+    main()
