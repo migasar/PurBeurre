@@ -63,31 +63,9 @@ class APICaller:
             return self.payload
 
 
-# # Create a dictionary, uniquely with the JSON elements from the request
-# cargo = response.json()
-
-# # # TEST: Print the status code of the response.
-# # print(f"response.status_code : {str(response.status_code)}")
-
-# api_products = API(constant.PRODUCTS_URL, constant.PRODUCTS_PARAMETERS)
-# payload_products = APICaller(api_products)
-# cargo = payload_products.format_response()
-
-# # TEST:
-# print(f"URL of API for products : {api_products.url}")
-# print(f"RL of API for parameters : {api_products.parameters}")
-# print(f"payload_products response : {payload_products.test_response()}")
-
-
-# api_categories = API(
-#     constant.CATEGORIES_URL, constant.CATEGORIES_PARAMETERS
-# )
-# payload_categories = APICaller(api_categories)
-# manifest = payload_categories.format_response()
-
-
 class DataCleaner:
     """
     Handle a JSON object to structure it and to manipulate its content
     """
+
     pass
