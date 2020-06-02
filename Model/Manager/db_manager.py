@@ -13,7 +13,7 @@ import os
 import mysql.connector as mysql
 from mysql.connector import Error
 
-import Static.setting as setting  # module with private settings
+import Static.credential as credential  # module with private settings
 
 
 class Borg:
@@ -161,30 +161,3 @@ class DBManager:
         self.cursor = self._connector.cursor
 
         return self.connection, self.cursor
-
-
-def main():
-
-    # INSTANCIATE A CONNECTION TO SERVER
-    # connection = DBConnector(setting.DB_HOST, setting.DB_USER, setting.DB_PASSWORD)
-    # cursor = connection.cursor
-
-    # CHECK DATABASES
-    # cursor.execute("DROP DATABASE purbeurre")
-    # cursor.execute("SHOW DATABASES")
-    # databases = cursor.fetchall()
-    # for database in databases:
-    #     print(database)
-
-    # CREATE DATABASE
-    db_test = DBManager(setting.DB_HOST, setting.DB_USER, setting.DB_PASSWORD, db_name='purbeurre')
-
-    # CHECK TABLES
-    db_test.cursor.execute("SHOW TABLES")
-    tables = db_test.cursor.fetchall()
-    for table in tables:
-        print(table)
-
-
-if __name__ == "__main__":
-    main()
