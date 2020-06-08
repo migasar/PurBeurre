@@ -1,6 +1,7 @@
-"""
-Regroup the constants of the program : settings, parameters...
-"""
+""" Regroup the constants of the program : settings, parameters... """
+
+
+import os
 
 
 # addresses of connection to the API of OpenFoodFacts
@@ -29,3 +30,14 @@ CATEGORIES_PARAMETERS = {
     "sort_by": 'products',
     "json": 'true'
 }
+
+
+# parameters to set the paths around the project structure
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+SCHEMA_PATH = os.path.join(PROJECT_ROOT, 'Static', 'schema_purbeurre.sql')
+
+
+def get_path(*args):
+    """create a path to any component of the project"""
+    return os.path.join(PROJECT_ROOT, *args)
