@@ -1,5 +1,7 @@
 """
-Handle the recovery of the data from an external repository.
+Handle the recovery of the data
+
+Fetch the data from an external repository.
 and deal with the reformatting of the data.
 """
 
