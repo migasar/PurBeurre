@@ -1,6 +1,7 @@
 """
-Handle the storage of the data,
-from the creation of the database and its components
+Handle the storage of the data
+
+From the creation of the database and its components
 to the insertion of the data in the database.
 
 Part of the ORM (object-relational mapping) :
@@ -14,6 +15,7 @@ import mysql.connector as mysql
 from mysql.connector import Error
 
 import Static.credential as credential  # module with private settings
+import Static.constant as constant
 
 
 class Borg:
@@ -123,9 +125,6 @@ class DBManager:
         self.connection = self._connector.connection
         self.cursor = self._connector.cursor
 
-        # initiate the creation of the database
-        self.build_database('schema_purbeurre.sql')
-
     def get_connector(self, db_name=None):
         """
         Connect with a database if db_name is specified, otherwise connect with the server
@@ -136,14 +135,14 @@ class DBManager:
 
         return self._connector
 
-    def build_database(self, *args):
-        """Fetch a SQL file and use it as a schema to build the database"""
-
-        # create a path object to reach the sql file
-        filename = os.path.join(os.getcwd(), *args)  # args='schema_purbeurre.sql'
+    def build_database(self, filepath=constant.SCHEMA_PATH):
+        """
+        Initiate the creation of the database.
+        Take the path to a sql file as variable, and use the file as a schema to build the database
+        """
 
         # open the sql file with as an object to pass its content to other methods
-        with open(filename, 'r') as f:
+        with open(filepath, 'r') as f:
             sql_file = f.read()
             # methods to format the content of the sql file
             # delete all the end lines in the file
