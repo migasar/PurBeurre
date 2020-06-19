@@ -5,30 +5,34 @@ import os
 
 
 # addresses of connection to the API of OpenFoodFacts
-PRODUCTS_URL = 'https://fr.openfoodfacts.org/cgi/search.pl'
+OFF_URL = 'https://fr.openfoodfacts.org/cgi/search.pl'
 
 CATEGORIES_URL = 'https://fr.openfoodfacts.org/categories'
 
 
 # parameters for the connection to the API of OpenFoodFacts
-PRODUCTS_ACTION = 'process'
-PRODUCTS_SORT_BY = 'unique_scans_n'
-PRODUCTS_PAGE_SIZE = 100
-PRODUCTS_JSON = 'true'
-PRODUCTS_PAGE = 1
-PRODUCTS_PARAMETERS = {
-    "action": 'process',
-    "sort_by": 'unique_scans_n',
-    "page_size": 100,
-    "json": 'true',
-    # "page": 1
+API_ACTION = 'process'
+API_SORT_BY = 'unique_scans_n'
+API_PAGE_SIZE = 3
+API_JSON = 'true'
+API_PAGE = 1
+
+API_PARAMETERS = {
+    "action": API_ACTION,
+    "sort_by": API_SORT_BY,
+    "page_size": API_PAGE_SIZE,
+    # "page_size": API_PAGE_SIZE,
+    "json": API_JSON,
+    "page": API_PAGE
 }
 
-CATEGORIES_SORT_BY = 'products'
-CATEGORIES_JSON = 'true'
-CATEGORIES_PARAMETERS = {
-    "sort_by": 'products',
-    "json": 'true'
+API_OFF_PARAMETERS = {
+    "action": 'process',
+    "sort_by": 'unique_scans_n',
+    "page_size": 2,
+    # "page_size": 100,
+    "json": 'true',
+    "page": 5
 }
 
 
@@ -36,6 +40,11 @@ CATEGORIES_PARAMETERS = {
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SCHEMA_PATH = os.path.join(PROJECT_ROOT, 'Static', 'schema_purbeurre.sql')
+
+JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'payload.json')
+# JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'cargo.json')
+# JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'cargo_draft.json')
+# JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'cargo_payload.json')
 
 
 def get_path(*args):
