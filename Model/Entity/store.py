@@ -4,10 +4,14 @@
 class Store:
     """Create an object describing one store"""
 
-    def __init__(self, table_name='store', id=None, **kwargs):
+    def __init__(self, name, products, id=None):
 
-        self.table_name = table_name
         self.id = id
-
         self.name = name
         self.products = products
+
+    def view_name(self):
+        return self.__class__.__name__.lower()
+
+    def view_attributes(self):
+        return self.__dict__.keys()

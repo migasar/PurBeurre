@@ -4,46 +4,37 @@
 class Product:
     """Create an object describing one product"""
 
-    def __init__(self, table_name='product', id=None, **kwargs):
+    def __init__(self, name, nutriscore, code, categories, stores, url, id=None):
 
-        self.table_name = table_name
         self.id = id
-
         self.name = name
-        self.score = score
+
+        self.nutriscore = nutriscore
+        self.code = code
         self.url = url
-        self.description = description
-        self.categories = categories
-        self.stores = stores
+        self.categories = []
+        # for cat in categories.split(',')
+        #   try:
+        #       cat = Categorie(name)
+        #       ajouter la categorie à self.categories
 
-    # objects = ProductRepository()
-    # objects.get_all() # to call all the instances of product from ProductRepository
+        # self.categories = categories
+        # self.stores = stores
 
-    # methods to be dev in the class ProductRepository :
-    # def get_all(self):
-    #     pass
-    #
-    # def get_all_by_category(self, category):
-    #     pass
-    #
-    # def get_all_by_store(self, store):
-    #     pass
-    #
-    # def get_all_with_score_larger_than(self, score):
-    #     pass
-    #
-    # def get_unhealthy_products_by_category(self, category):
-    #     pass
-    #
-    # def save(self, product):
-    #     pass
-    #
-    # def create(self,
-    #            name=None,
-    #            score=None,
-    #            description=None,
-    #            url=None,
-    #            categories=None,
-    #            stores=None
-    #            ):
-    #     pass
+    def view_name(self):
+        return self.__class__.__name__.lower()
+
+    def view_attributes(self):
+        return self.__dict__.keys()
+
+
+# protest = Product(1, 'foo', 2, ['bar'], ['ham'])
+#
+# print(f" name of class : {protest.view_name()}")
+# print(f"list of attributes : {protest.view_attributes()}")
+#
+# print(type(protest.__dict__.keys()))
+#
+# for i in protest.__dict__.keys():
+#     print(type(i))
+
