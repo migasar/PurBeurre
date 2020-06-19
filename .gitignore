@@ -2,7 +2,7 @@ __pycache__/
 
 .idea/
 .code-workspace
-.vscode
+.vscode/
 
 .ipynb_checkpoints
 
