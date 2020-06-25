@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS `product` ;
 CREATE TABLE IF NOT EXISTS `product` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(250) DEFAULT NULL,
+  `brands` varchar(250) DEFAULT NULL,
   `nutriscore` int(11) DEFAULT NULL,
   `code` bigint DEFAULT NULL,
   `url` varchar(500) DEFAULT NULL,
