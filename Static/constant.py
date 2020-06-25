@@ -1,4 +1,4 @@
-""" Regroup the constants of the program : settings, parameters... """
+"""Regroup the constants of the program: settings, parameters..."""
 
 
 import os
@@ -13,26 +13,26 @@ CATEGORIES_URL = 'https://fr.openfoodfacts.org/categories'
 # parameters for the connection to the API of OpenFoodFacts
 API_ACTION = 'process'
 API_SORT_BY = 'unique_scans_n'
-API_PAGE_SIZE = 3
+API_PAGE_SIZE = 10
 API_JSON = 'true'
-API_PAGE = 1
+API_PAGE = 3
 
 API_PARAMETERS = {
-    "action": API_ACTION,
-    "sort_by": API_SORT_BY,
-    "page_size": API_PAGE_SIZE,
-    # "page_size": API_PAGE_SIZE,
-    "json": API_JSON,
-    "page": API_PAGE
+        "action": API_ACTION,
+        "sort_by": API_SORT_BY,
+        "page_size": API_PAGE_SIZE,
+        # "page_size": API_PAGE_SIZE,
+        "json": API_JSON,
+        "page": API_PAGE
 }
 
 API_OFF_PARAMETERS = {
-    "action": 'process',
-    "sort_by": 'unique_scans_n',
-    "page_size": 2,
-    # "page_size": 100,
-    "json": 'true',
-    "page": 5
+        "action": 'process',
+        "sort_by": 'unique_scans_n',
+        "page_size": 2,
+        # "page_size": 100,
+        "json": 'true',
+        "page": 5
 }
 
 
@@ -42,11 +42,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_PATH = os.path.join(PROJECT_ROOT, 'Static', 'schema_purbeurre.sql')
 
 JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'payload.json')
-# JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'cargo.json')
-# JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'cargo_draft.json')
-# JSON_PATH = os.path.join(PROJECT_ROOT, 'Static', 'samples', 'cargo_payload.json')
 
 
 def get_path(*args):
-    """create a path to any component of the project"""
+    """Create a path to any component of the project."""
     return os.path.join(PROJECT_ROOT, *args)
