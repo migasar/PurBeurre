@@ -1,12 +1,11 @@
-"""
-Handle the storage of the data
+"""Handle the storage of the data.
 
-From the creation of the database and its components
+From the creation of the database and its components,
 to the insertion of the data in the database.
 
-Part of the ORM (object-relational mapping) :
-The ORM handles every transaction between the database of the program and the other elements of the program.
-Every coding elements with SQL should be regrouped in the ORM.
+Part of the ORM (object-relational mapping):
+ - The ORM handles every transaction between the database of the program and the other elements of the program.
+ - Every coding elements with SQL should be regrouped in the ORM.
 """
 
 
@@ -17,8 +16,7 @@ import Static.constant as constant
 
 
 class Borg:
-    """
-    Metaclass to apply the Borg pattern to a subclass.
+    """Metaclass to apply the Borg pattern to a subclass.
 
     It makes sure that there is only one instance of a class that is in use.
     The Borg pattern is an alternative to the Singleton.
@@ -36,7 +34,7 @@ class Borg:
 
 
 class DBConnection(Borg):
-    """ Initiate the connection to MySQL server or a database """
+    """Initiate the connection to MySQL server or a database."""
 
     def __init__(self, host_name, user_name, user_password, db_name=None):
 
@@ -52,13 +50,13 @@ class DBConnection(Borg):
         self.connection = self.create_connection()
 
     def create_connection(self):
-        """
-        Create a connection with MySQL server,
-        if db_name is specified, create a connection specifically to a database
+        """Create a connection with MySQL server.
+
+        If db_name is specified, create a connection specifically to a database.
         """
 
+        # create a general connection to MySQL server
         if self.db_name is None:
-            # create a general connection to MySQL server
 
             try:
                 self.connection = mysql.connect(
@@ -66,13 +64,14 @@ class DBConnection(Borg):
                         user=self.user_name,
                         passwd=self.user_password
                 )
+
             except Error as e:
                 print(f"The error'{e}' occured")
 
             return self.connection
 
+        # create a connection specifically to a database
         else:
-            # create a connection specifically to a database
 
             try:
                 self.connection = mysql.connect(
@@ -81,6 +80,7 @@ class DBConnection(Borg):
                         passwd=self.user_password,
                         database=self.db_name
                 )
+
             except Error as e:
                 print(f"The error'{e}' occured")
 
@@ -101,10 +101,9 @@ class DBManager:
         self.cursor = self.connection.cursor()
 
     def get_connection(self, db_name=None):
-        """
-        Retrieve a connection.
+        """Retrieve a connection.
 
-        Connect with a database if db_name is specified, otherwise connect with the server
+        Connect with a database if db_name is specified, otherwise connect with the server.
         """
 
         _cnx = DBConnection(self.host_name, self.user_name, self.user_password, db_name)
@@ -112,14 +111,14 @@ class DBManager:
         return _cnx.connection
 
     def build_database(self, filepath=constant.SCHEMA_PATH):
-        """
-        Initiate the creation of the database.
+        """Initiate the creation of the database.
 
-        Take the path to a sql file as variable, and use the file as a schema to build the database
+        Take the path to a sql file as variable, and use the file as a schema to build the database.
         """
 
         # open the sql file as an object to pass its content to other methods
         with open(filepath, 'r') as f:
+
             sql_file = f.read()
             # methods to format the content of the sql file
             # delete all the end lines in the file
@@ -134,4 +133,5 @@ class DBManager:
         # renew get_connection() to initiate a connection with the database
         self.connection = self.get_connection(self.db_name)
         self.cursor = self.connection.cursor()
+
         return self.connection, self.cursor
