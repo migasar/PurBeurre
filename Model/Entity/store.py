@@ -4,7 +4,7 @@
 class Store:
     """Create an object describing one store"""
 
-    def __init__(self, name, products, id=None):
+    def __init__(self, name, products=None, id=None):
 
         self.id = id
         self.name = name
