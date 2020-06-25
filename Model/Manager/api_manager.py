@@ -1,9 +1,9 @@
-"""
-Handle the recovery of the data.
+"""Handle the recovery of the data.
 
 Fetch the data from an external repository,
 and deal with the reformatting of the data.
 """
+
 
 import requests
 
@@ -15,7 +15,7 @@ from Model.Manager.entity_manager import EntityManager
 
 
 class API:
-    """Set the API. """
+    """Set the API."""
 
     def __init__(self, url, parameters):
         self.url = url
@@ -23,74 +23,272 @@ class API:
 
 
 class APICaller:
-    """
-    Create a request to connect with an API and to collect data from a website.
+    """Create a request to connect with an API and to collect data from a website.
 
-    - take the elements from the class API to use as variables for the methods of requests
-    - create 'responses' : a list of objects of class Response (from package requests)
+    - Take the elements from the class API to use as variables for the methods of requests.
+    - Create 'responses': a list of objects of class Response (from package requests).
     """
 
     def __init__(self, api):
         self.url = api.url
         self.parameters = api.parameters
-        self.responses = []
+        self.products = []
 
-    def get_responses(self):
+        self.categories = []  # variable used only for the development
+        self.stores = []  # variable used only for the development
+
+        self.category_census = []  # variable used only for the development
+        self.store_census = []  # variable used only for the development
+
+    def get_data(self):
+        """Make a get request to the API (one page at a time), and fetch specific data.
+
+        From objects of class Response (of package requests), extract the data we need on each product.
+        Return a list of objects of class Product contained in 'self.products'.
         """
-        Make a get request to the API (one page at a time).
 
-        Return 'responses': a list of objects of class Response (from package requests)
-        """
+        def request_api():
+            """Make a get request to the API (one page at a time)."""
 
-        if self.parameters["page"] is None:
-            # send a get request for only one page
-
-            answer = requests.get(self.url, params=self.parameters)
-            self.responses.append(answer)
-
-        else:
-            # send a get request for each page iteratively
-
-            page_number = self.parameters["page"]
             # use the parameter 'page' to set the range of the loop
-            # objets = []
-            # for p in range(1, page_number + 1):
-            #     # iterate on the method, by modifying the parameter 'page'
-            #     self.parameters["page"] = p
-            #     answer = requests.get(self.url, params=self.parameters)
-            #     recupère le json dans answzer.request
-            #     for chaque obket dans la listye json:
-            #         try:
-            #           objet = Product(info 1, info 2 info 3)
-            #           ajouter l'objet a la liste'
-            #         except ERREUR:
-            #           continue
-            # apelle la database en lui envoyant la liste d'objets
+            page_number = self.parameters["page"]
 
+            for page in range(1, page_number + 1):
 
+                # iterate on the method, by modifying the parameter 'page'
+                self.parameters["page"] = page
 
-                #self.responses.append(answer)
+                # execute the request
+                answer = requests.get(self.url, params=self.parameters)
 
+                # call the function iteratively, to extract the data
+                clean_response(answer)
+
+            # clean the variable 'page' by canceling its modifications
             self.parameters["page"] = page_number
-            # cancel the modifications made to the variable 'page'
 
-        return self.responses
+            return self.products
+
+        def clean_response(answer):
+            """Get the data of interest from an object, used as a container of data.
+
+            - Open the container, to extract the content.
+            - Filter the content, to discad unwanted data.
+            """
+
+            # loop over each product in the json content of 'answer.requests' (an object of class Response)
+            for p in answer.json()['products']:
+                """
+                for each product:
+                    filter out product without complying values:
+                        discard product without values in french
+                        discard product with missing values
+                    creates instances of our entities
+                        create an instance of class Product 
+                            with specified basic values as variables
+                        create an instance of class Category for each category of the product
+                            modify the variable category of the instance of Product
+                                append a list composed of every instance of Category related to the product
+                        create an instance of class Store for each store of the product
+                            modify the variable store  of the instance of Product
+                                append a list composed of every instance of Store related to the product
+                """
+
+                # filter products to keep exclusively those with complying values
+
+                # use if/else as a filter, to keep products with categories in french
+                if p['categories_lc'] == 'fr':
+
+                    # use try/except as a filter to discard products with missing values, when we create instances of our entities
+                    try:
+
+                        # create an instance of class 'Product' with base values
+                        product = Product(
+                                name=p['product_name_fr'],
+                                brands=[b.strip() for b in p['brands'].split(',')],
+                                nutriscore=p['nutriscore_score'],
+                                code=p['code'],
+                                url=p['url']
+                        )
+
+                    # if a value is missing, discard this product and continue to the next
+                    except KeyError:
+                        continue
+
+                    else:
+
+                        # use dedicated static methods in the class 'Product', to create the instances of 'Category' and'Store'
+                        try:
+
+                            # create an instance of class 'Category' for each category of this product
+                            # make a list with all these instances of 'Category'
+                            # append this list to the variable 'categories' of this instance of 'Product'
+                            product.categories = product.get_categories(p['categories'], product)
+
+                            # create an instance of class 'Store' for each store of this product
+                            # make a list with all these instances of 'Store'
+                            # append this list to the variable 'stores' of this instance of 'Product'
+                            product.stores = product.get_stores(p['stores'], product)
+
+                            self.products.append(product)
+
+                        # if a value is missing for the categories or the stores, discard this product and continue to the next
+                        except KeyError:
+                            continue
+
+                # if the product has no categories in french, discard it and continue to the next product
+                else:
+                    continue
+
+            return self.products
+
+        # launch the cascading call to the functions
+        request_api()
+
+        return self.products
+
+    def get_category_instances(self):  # method used only for the development
+        """Create a list with every instances of 'Category'.
+
+        Iterate on a method of class Product.
+        """
+
+        for p in self.products:
+            self.categories += p.categories
+
+        return self.categories
+
+    def get_category_census(self):  # method used only for the development
+        """Create an object listing every instances of 'Category'
+
+        with no duplicates,
+        and with a listing per category of every product related to them.
+        """
+
+        # launch the method 'get_category_instances' to ensure that 'self.categories' is ready
+        self.get_category_instances()
+        # ensure that the variable 'self.category_census' is clean
+        self.category_census = []
+
+        # create a list with the name of the categories (without duplicates)
+        cat_set = sorted(set([cat.name for cat in self.categories]))
+
+        # use the listing of category names to set the loop
+        for cat in cat_set:
+
+            # initiate a list to save every instance of Product related to this category name
+            cat_prods = []
+            # loop over the elements of self.categories to catch every occurence of this category name
+            for c in self.categories:
+                if str(cat) == c.name:
+                    # catch each instance of Product associated with an occurence of this category name
+                    cat_prods.append(c.products)
+
+            # modify the list cat_prods to improve it (sort it by the name of the products and discard the duplicates)
+            cat_prod_set = sorted(list(set(cat_prods)), key=lambda prod: prod.name)
+
+            # create an instance of this category (and attach the related instances of product)
+            case = Category(
+                    name=str(cat),
+                    products=cat_prod_set
+            )
+            # add this instance of Category to the listing of categories
+            self.category_census.append(case)
+
+        return self.category_census
+
+    def get_store_instances(self):  # method used only for the development
+        """Create a list with every instances of 'Store'.
+
+        Iterate on a method of class Product.
+        """
+
+        for p in self.products:
+            self.stores += p.stores
+
+        return self.stores
+
+    def get_store_census(self):  # method used only for the development
+        """Create an object listing every instances of 'Store'
+
+        with no duplicates,
+        and with a listing per category of every product related to them.
+        """
+
+        # launch the method 'get_store_instances' to ensure that 'self.stores' is ready
+        self.get_store_instances()
+        # ensure that the variable 'self.category_census' is clean
+        self.store_census = []
+
+        # create a list with the name of the stores (without duplicates)
+        shop_set = sorted(set([shop.name for shop in self.stores]))
+
+        # use the listing of store names to set the loop
+        for shop in shop_set:
+
+            # initiate a list to save every instance of Product related to this store name
+            shop_prods = []
+            # loop over the elements of self.stores to catch every occurence of this store name
+            for s in self.stores:
+                if str(shop) == s.name:
+                    # catch each instance of Product associated with an occurence of this store name
+                    shop_prods.append(s.products)
+
+            # modify the list shop_prods to improve it (sort it by the name of the products and discard the duplicates)
+            shop_prod_set = sorted(list(set(shop_prods)), key=lambda prod: prod.name)
+
+            # create an instance of this store (and attach the related instances of product)
+            showcase = Store(
+                    name=str(shop),
+                    products=shop_prod_set
+            )
+            # add this instance of Store to the listing of stores
+            self.store_census.append(showcase)
+
+        return self.store_census
+
+    # LIST OF PRODUCT IN DB
+    # call the DB to send the list of objects
+    def call_db(self):
+        # use self.products when it is full
+        pass
+
+        # BROUILLONS
+        # objets = []
+        # for p in range(1, page_number + 1):
+        #     # iterate on the method, by modifying the parameter 'page'
+        #     self.parameters["page"] = p
+        #     answer = requests.get(self.url, params=self.parameters)
+        #     recupère le json dans answzer.request
+        #     for chaque obket dans la listye json:
+        #         try:
+        #           objet = Product(info 1, info 2 info 3)
+        #           ajouter l'objet a la liste'
+        #         except ERREUR:
+        #           continue
+        # apelle la database en lui envoyant la liste d'objets
+
+        # self.responses.append(answer)
+
+        # self.parameters["page"] = page_number
+        # # cancel the modifications made to the variable 'page'
+
+        # return self.responses
 
     def test_status(self):
-        """Print the status code of the response. """
+        """Print the status code of the response."""
 
         response = requests.get(self.url, params=self.parameters)
 
         if response is None:
-            return "The request has yet to be made. "
+            return "The request has yet to be made."
 
         else:
-            return "status code of the API : {}".format(str(response.status_code))
+            return "status code of the API: {}".format(str(response.status_code))
 
 
 class DataCleaner:
-    """
-    Handle a complex container of data (with many layers of structure), open it and manipulate its content.
+    """Handle a complex container of data (with many layers of structure), open it and manipulate its content.
 
     - take 'container':  data structure that can be of 2 possible types
         - list concatenating many objects of class Response, coming from an instance of 'APICaller'
@@ -109,8 +307,7 @@ class DataCleaner:
         # test the initial structure of container and modify it if needed
 
     def test_container(self):
-        """
-        Ensure that the object 'container' has the apropriate internal structure (a list of dict)
+        """Ensure that the object 'container' has the apropriate internal structure (a list of dict).
 
         Test if the container is list of object of class Response (a special class of the package requests),
         If it's the case, it applyies the method 'filter_container()' to modify the structure of 'container'
@@ -120,8 +317,7 @@ class DataCleaner:
         """
 
         def filter_container(responses):
-            """
-            Open an object used as container, and extract the data in an usable format.
+            """Open an object used as container, and extract the data in an usable format.
 
             - take 'responses': a list of objects of class Response (from package requests)
             - return 'data_dump': a list of dict (and a modified version of 'data_responses')
@@ -155,8 +351,7 @@ class DataCleaner:
             print("Data comes from a JSON file")
 
     def extract_values(self):
-        """
-        Method orchestrating the use of the other methods to iterate over the container.
+        """Method orchestrating the use of the other methods to iterate over the container.
 
         - search for specific data (for each product, fetch only values that we specified)
         - test the viability of the data (product with missing values are discarded)
@@ -165,8 +360,7 @@ class DataCleaner:
         """
 
         def test_values(freight, vessel):
-            """
-            Test if a dict contains all the data that we requested.
+            """Test if a dict contains all the data that we requested.
 
             - takes 'freight': a dict on which to perform the search
             - takes 'vessel': a dict used as a point of comparison
@@ -190,13 +384,12 @@ class DataCleaner:
             return test
 
         def get_values(freight, vessel):
-            """
-            Retrieve the data that we requested and copy it in vessel.
+            """Retrieve the data that we requested and copy it in vessel.
 
             - takes 'freight': a dict from which comes the values
             - takes 'vessel': a dict used as a repository of the values
 
-            vessel is a dict with its keys already established, but with no values for the keys
+            'vessel' is a dict with its keys already established, but with no values for the keys.
             Its keys are used as a pointer for the method.
             """
 
@@ -243,8 +436,7 @@ class DataCleaner:
 
 
 class DataDownloader:
-    """
-    Handle the data, and load it in a database.
+    """Handle the data, and load it in a database.
 
     - 'payload': a dictionary of products. Each product is an item (<key = int>: <value = data of one product>).
         - 'payload' comes from DataCleaner
@@ -360,4 +552,3 @@ class DataDownloader:
 
     def download_product_to_store(self):
         pass
-
