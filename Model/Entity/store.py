@@ -4,14 +4,15 @@
 class Store:
     """Create an object describing one store"""
 
-    def __init__(self, name, products=None, id=None):
+    def __init__(self, name, products=None, _id=None):
 
-        self.id = id
         self.name = name
         self.products = products
+        self._id = _id
 
-    def view_name(self):
-        return self.__class__.__name__.lower()
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"({', '. join([str(v) for v in self.__dict__.values()])})")
 
-    def view_attributes(self):
-        return self.__dict__.keys()
+    def __str__(self):
+        return f"{self.name}"
