@@ -33,8 +33,8 @@ class Borg:
         self.__dict__ = self.__shared_state
 
 
-class DBConnection(Borg):
-    """Initiate the connection to MySQL server or a database."""
+class DBManager(Borg):
+    """Create the database or initiate its connection, if it already exists."""
 
     def __init__(self, host_name, user_name, user_password, db_name=None):
 
@@ -46,10 +46,11 @@ class DBConnection(Borg):
         self.user_password = user_password
         self.db_name = db_name
 
-        # initiate the connection
-        self.connection = self.create_connection()
+        # initiate a connection to the server
+        self.connection = self.set_connection()
+        self.cursor = self.connection.cursor()
 
-    def create_connection(self):
+    def set_connection(self):
         """Create a connection with MySQL server.
 
         If db_name is specified, create a connection specifically to a database.
@@ -57,14 +58,12 @@ class DBConnection(Borg):
 
         # create a general connection to MySQL server
         if self.db_name is None:
-
             try:
                 self.connection = mysql.connect(
                         host=self.host_name,
                         user=self.user_name,
                         passwd=self.user_password
                 )
-
             except Error as e:
                 print(f"The error'{e}' occured")
 
@@ -72,7 +71,6 @@ class DBConnection(Borg):
 
         # create a connection specifically to a database
         else:
-
             try:
                 self.connection = mysql.connect(
                         host=self.host_name,
@@ -80,35 +78,10 @@ class DBConnection(Borg):
                         passwd=self.user_password,
                         database=self.db_name
                 )
-
             except Error as e:
                 print(f"The error'{e}' occured")
 
             return self.connection
-
-
-class DBManager:
-    """Create the database or initiate its connection, if it already exists."""
-
-    def __init__(self, host_name, user_name, user_password, db_name):
-        self.host_name = host_name
-        self.user_name = user_name
-        self.user_password = user_password
-        self.db_name = db_name
-
-        # initiate a connection to the server
-        self.connection = self.get_connection()
-        self.cursor = self.connection.cursor()
-
-    def get_connection(self, db_name=None):
-        """Retrieve a connection.
-
-        Connect with a database if db_name is specified, otherwise connect with the server.
-        """
-
-        _cnx = DBConnection(self.host_name, self.user_name, self.user_password, db_name)
-
-        return _cnx.connection
 
     def build_database(self, filepath=constant.SCHEMA_PATH):
         """Initiate the creation of the database.
@@ -118,7 +91,6 @@ class DBManager:
 
         # open the sql file as an object to pass its content to other methods
         with open(filepath, 'r') as f:
-
             sql_file = f.read()
             # methods to format the content of the sql file
             # delete all the end lines in the file
@@ -130,8 +102,9 @@ class DBManager:
         for line in sql_file:
             self.cursor.execute(line)
 
-        # renew get_connection() to initiate a connection with the database
-        self.connection = self.get_connection(self.db_name)
+        # renew set_connection() to initiate a connection with the database
+        self.db_name = constant.DB_NAME
+        self.connection = self.set_connection()
         self.cursor = self.connection.cursor()
 
         return self.connection, self.cursor
