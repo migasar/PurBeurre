@@ -8,10 +8,10 @@ Part of the ORM (object-relational mapping):
  - Every coding elements with SQL should be regrouped in the ORM.
 """
 
-
 import mysql.connector as mysql
 from mysql.connector import Error
 
+import Static.credential as credential
 import Static.constant as constant
 
 
@@ -36,11 +36,17 @@ class Borg:
 class DBManager(Borg):
     """Create the database or initiate its connection, if it already exists."""
 
-    def __init__(self, host_name, user_name, user_password, db_name=None):
+    def __init__(self,
+                 host_name=credential.DB_HOST,
+                 user_name=credential.DB_USER,
+                 user_password=credential.DB_PASSWORD,
+                 db_name=None
+                 ):
 
-        # ensure that only one instance of DBConnection is at play
+        # ensure that only one instance of 'DBManager' is at play
         Borg.__init__(self)
 
+        # parameters of the connection
         self.host_name = host_name
         self.user_name = user_name
         self.user_password = user_password
@@ -66,7 +72,6 @@ class DBManager(Borg):
                 )
             except Error as e:
                 print(f"The error'{e}' occured")
-
             return self.connection
 
         # create a connection specifically to a database
@@ -80,7 +85,6 @@ class DBManager(Borg):
                 )
             except Error as e:
                 print(f"The error'{e}' occured")
-
             return self.connection
 
     def build_database(self, filepath=constant.SCHEMA_PATH):
@@ -92,7 +96,6 @@ class DBManager(Borg):
         # open the sql file as an object to pass its content to other methods
         with open(filepath, 'r') as f:
             sql_file = f.read()
-            # methods to format the content of the sql file
             # delete all the end lines in the file
             sql_file = sql_file.replace("\n", "")
             # explicitly split every query inside the file

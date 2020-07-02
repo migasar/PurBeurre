@@ -1,23 +1,37 @@
 """ Create an object 'Product' to carry the data of the products. """
 
-
 from Model.Entity.category import Category
 from Model.Entity.store import Store
 
 
 class Product:
-    """Create an object describing one product"""
+    """Create an object describing one product."""
 
     def __init__(self, name, nutriscore, url, categories=None, stores=None, _id=None):
 
         self.name = name
         self.nutriscore = nutriscore
         self.url = url
-
         self.categories = self.set_categories(categories)
         self.stores = self.set_stores(stores)
-
         self._id = _id
+
+    def __repr__(self):
+        """Create a more usable representation of the object.
+
+        The idea with this representation is to call a string similar to the command used to instanciate the object.
+        """
+
+        return (f"{self.__class__.__name__}("
+                f"({', '. join([str(v) for v in self.__dict__.values()])})")
+
+    def __str__(self):
+        """Create a more readable string representation of the object.
+
+        The idea with this string method is to print a representation with just the name attribute of the instance/
+        """
+
+        return f"{self.name}"
 
     @staticmethod
     def set_categories(categories, product=None):
@@ -27,41 +41,38 @@ class Product:
         or retrieve a list of instances if they have already been initiated.
         """
 
+        # test if the variable is empty
         if len(categories) == 0:
-            # test if the variable is empty
             raise KeyError
 
+        # test if the content of the variable is not yet an instance
         elif type(categories) is str:
-            # create a list of instances
 
+            # create a list of instances
             cats = []
             for cat in categories.split(','):
 
-                # use try/except when we create instances of 'Category',
-                # as a filter to discard categories with missing values
+                # use try/except as a filter, to discard instances of 'Category' with missing values
                 try:
                     # try to create an instance of class 'Category' with required values
                     category = Category(
                             name=str(cat).strip(),
                             products=product
                     )
-                    # if a value is empty, discard this category and jump to the next
+                    # discard this instance and jump to the next, if a value is empty
                     if category.name == "":
                         raise KeyError
-                # if a value is missing, discard this category and jump to the next
+                # discard this instance and jump to the next, if a value is missing
                 except KeyError:
                     continue
-
-                # if no exception is raised,
-                # this instance of category is not discarded and it is added to the list
-                # the else clause is a follow-up to the successfull execution of the try clause
+                # this instance is added to the list, if no exception is raised
                 else:
                     cats.append(category)
 
             return cats
 
+        # assume that the instances have been initiated
         else:
-            # assume that the instances have been initiated
             return categories
 
     @staticmethod
@@ -72,34 +83,31 @@ class Product:
         or retrieve a list of instances if they have already been initiated.
         """
 
+        # test if the variable is empty
         if len(stores) == 0:
-            # test if the variable is empty
             raise KeyError
 
+        # test if the content of the variable is not yet an instance
         elif type(stores) is str:
-            # create a list of instances
 
+            # create a list of instances
             shops = []
             for shop in stores.split(','):
 
-                # use try/except when we create instances of 'Store',
-                # as a filter to discard stores with missing values
+                # use try/except as a filter, to discard instances of 'Store' with missing values
                 try:
                     # try to create an instance of class 'Store' with required values
                     store = Store(
                             name=str(shop).strip(),
                             products=product
                     )
-                    # if a value is empty, discard this store and jump to the next
+                    # discard this instance and jump to the next, if a value is empty
                     if store.name == "":
                         raise KeyError
-                # if a value is missing, discard this store and jump to the next
+                # discard this instance and jump to the next, if a value is missing
                 except KeyError:
                     continue
-
-                # if no exception is raised,
-                # this instance of store is not discarded and it is added to the list
-                # the else clause is a follow-up to the successfull execution of the try clause
+                # this instance is added to the list, if no exception is raised
                 else:
                     shops.append(store)
 
@@ -109,30 +117,28 @@ class Product:
             # assume that the instances have been initiated
             return stores
 
-    def __repr__(self):
-        return (f"{self.__class__.__name__}("
-                f"({', '. join([str(v) for v in self.__dict__.values()])})")
-
     def get_headers(self):
+        """Create a tuple with the name of attributes (which are not empty).
+
+        It will be used as a parameter in the creation of queries (as a string of column names)."""
 
         headers = tuple([k for k, v in self.__dict__.items() if v is not None and type(v) is not list])
         return headers
 
     def get_values(self):
+        """Create a list with the values of attributes (which are not empty).
+
+        It will be used as a parameter in the creation of queries (as a row of values)."""
 
         values = [
                 v if type(v) is not list else [
                         str(x) for x in v
                 ] for v in self.__dict__.values() if v is not None
         ]
-        # values = [
-        #         v if type(v) is not list else [
-        #                 x for x in v
-        #         ] for v in self.__dict__.values() if v is not None
-        # ]
         return values
 
     def get_row(self):
+        """Create a list with every element used as a parameter, in the creation of a query to insert a row."""
 
         row_listing = [
                 self.__class__.__name__,
@@ -140,5 +146,3 @@ class Product:
                 self.get_values()
         ]
         return row_listing
-
-

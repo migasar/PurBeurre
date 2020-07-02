@@ -3,7 +3,6 @@
 Call all the elements of the program in an orchestrated manner.
 """
 
-
 import os
 import json
 
@@ -21,17 +20,29 @@ import Static.sql_queries as queries
 
 
 #  DB CONNECTION
-
 def create_database():
 
     # CREATE DATABASE
-    db_builder = DBManager(credential.DB_HOST, credential.DB_USER, credential.DB_PASSWORD)
+    db_builder = DBManager()
     db_builder.build_database()
     print("db created !")
 
     return db_builder
 
 
+#  API CALL
+def call_api():
+
+    # CREATE API
+    api_caller = APIManager()
+    print("api created !")
+    api_caller.get_data()
+    print("request executed !")
+
+    return api_caller
+
+
+#  ENTITY INTERACTION
 def create_entity(db_manager):
 
     # CREATE ENTITY MANAGER
@@ -41,31 +52,17 @@ def create_entity(db_manager):
     return entity_manager
 
 
-#  API CALL
+#  DATA DOWNLOAD
+def download_data(api_manager, entity_manager):
 
-def call_api():
-
-    # CREATE API
-    api_manager = APIManager(constant.OFF_URL, constant.API_PARAMETERS)
-    print("api created !")
-    api_manager.get_data()
-    print("request executed !")
+    # SAVE DATA IN DB
+    api_manager.download_data(entity_manager)
+    print("data saved in db !")
 
     return api_manager
 
 
-#  DATA DOWNLOAD
-
-def download_data(entity):
-    # SAVE DATA IN DB
-    entity.save_all()
-    print("data saved in db !")
-
-    return entity
-
-
 #  MAIN
-
 def main():
     """Launch the program by calling the first modules of its internal process"""
 
@@ -73,32 +70,34 @@ def main():
     # ACTIONS #
     ###########
     db = create_database()
-    entity = create_entity(db)
     api = call_api()
-    download = download_data(entity)
+
+    entity = create_entity(db)
+    download = download_data(api, entity)
 
     #########
     # TESTS #
     #########
 
     # DB #
-    # print(f"type of db: {type(db)}")
+    print(f"type of db: {type(db)}")
+    print(f"db class name: {db.__class__.__name__}")
 
     # ENTITY #
-    # print(f"type of entity: {type(entity)}")
-    # print(f"entity class name: {entity.__class__.__name__}")
+    print(f"type of entity: {type(entity)}")
+    print(f"entity class name: {entity.__class__.__name__}")
     # print(f"type of entity.database: {type(entity.database)}")
     # print(f"type of entity.connection: {type(entity.connection)}")
     # print(f"type of entity.cursor: {type(entity.cursor)}")
 
     # API #
-    # print(f"type of API: {type(api)}")
-    # print(f"api class: {api.__class__}")
-    # print(f"api attributes: {api.__dict__.keys()}")
+    print(f"type of API: {type(api)}")
+    print(f"api class: {api.__class__.__name__}")
+    print(f"api attributes: {api.__dict__.keys()}")
 
     # API PRODUCTS
-    # print(f"type of api.products: {type(api.products)}")
-    # print(f"length of api.products: {len(api.products)}")
+    print(f"type of api.products: {type(api.products)}")
+    print(f"length of api.products: {len(api.products)}")
     # for prod in api.products:
     #     print(f"name: {prod.name}")
     #     print(f"categories: {prod.categories}")

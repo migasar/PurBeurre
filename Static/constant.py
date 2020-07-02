@@ -1,6 +1,5 @@
 """Regroup the constants of the program: settings, parameters..."""
 
-
 import os
 
 
@@ -14,9 +13,9 @@ API_SORT_BY = 'unique_scans_n'
 API_JSON = 'true'
 
 API_PARAMETERS = {
-        "action": API_ACTION,
-        "sort_by": API_SORT_BY,
-        "json": API_JSON
+        'action': API_ACTION,
+        'sort_by': API_SORT_BY,
+        'json': API_JSON
 }
 
 
