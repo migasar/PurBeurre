@@ -8,12 +8,9 @@ It contains the methods CRUD of the program:
  - Delete
 """
 
-
 from mysql.connector import Error
 
-# import for the development of the code:
-from Model.Entity.product import Product
-from Model.Manager.api_manager import APIManager
+from Model.Manager.db_manager import DBManager
 
 
 class EntityManager:
@@ -22,17 +19,13 @@ class EntityManager:
     The variable database is an instance of the class DBManager.
     """
 
-    def __init__(self, db):
+    def __init__(self, db=DBManager()):
 
         self.db = db
         self.connection = db.connection
         self.cursor = db.cursor
-
-        # attributes for the development of the code:
-        self.api = APIManager()
-        self.payload = self.api.get_data()  # return self.products: a list of instances of 'Product'
-
-    def save_all(self):
+        
+    def save_all(self, payload):
         """Insert multiple rows in a table."""
         """
         parcours la liste:
@@ -46,11 +39,9 @@ class EntityManager:
         """
 
         # parameters of the query
-        table_name = self.payload[0].__class__.__name__
-        # table_headers = self.payload[0].get_headers()
-        table_headers = str(self.payload[0].get_headers()).replace("'", "")
-        # string made of placeholders symbols (one for each column in the query)
-        headers_count = f"({', '.join(['%s'] * len(self.payload[0].get_headers()))})"
+        table_name = payload[0].__class__.__name__
+        table_headers = str(payload[0].get_headers()).replace("'", "")
+        headers_count = f"({', '.join(['%s'] * len(payload[0].get_headers()))})"
 
         # skeleton of the query
         query = (
@@ -63,17 +54,15 @@ class EntityManager:
         records = []
 
         # go through the list of instances of 'Product'
-        for prod in self.payload:
+        for prod in payload:
 
             # for each instance, create a row
             row = []
             for record in prod.get_values():
 
-                # fetch the values of the instance of product
-                # as it tests for its type
+                # fetch the values of the instance of product (if the value is not a list)
                 if type(record) is list:
-                    # if the value is a list, we assume that it is a list of instances of Store or Catgory,
-                    # in that case, we don't include it in the query to insert rows in the table 'product'
+                    # if the value is a list, we assume that it is a list of instances of 'Store' or 'Category'
                     continue
 
                     # variation:
@@ -88,19 +77,12 @@ class EntityManager:
                     # take the value as it is
                     row.append(record)
 
-            # format a row for a product
+            # format a row for an instance of product
             row_tuple = tuple(row)
-
             # add the row to a list of rows used for the statement
             records.append(row_tuple)
 
-        # records = (str(tuple(records))).replace("'", "")
-
-        # print(f"Query: {query}")
-        # print()
-        # print('Records: ')
-        # print(records)
-
+        # try to execute the query
         try:
             self.db.cursor.executemany(query, records)
             self.db.connection.commit()
@@ -148,7 +130,7 @@ class EntityManager:
     #             statement[str(elem.__class__.__name__.lower())].append(row)
     #
     #         return statement
-    #
+
     #     def build_statements():
     #         """Create a compilation of statements, as a dictionary.
     #
@@ -163,10 +145,10 @@ class EntityManager:
     #         }
     #
     #         # launch the recursive call to the function
-    #         fill_statement(self.payload, stm)
+    #         fill_statement(payload, stm)
     #
     #         return stm
-    #
+
     #     def build_insert(statements):
     #         """Take payload (a list of instances of Product) and use it to create parameters for sql queries"""
     #
@@ -178,7 +160,7 @@ class EntityManager:
     #             for row in v:
     #                 rows_values.append(list(row.values()))
     #             self.save_many_data(table_name, cols_names, rows_values)
-    #
+
     #     def insert_statement(statement):
     #
     #         self.statements = build_statements()
@@ -261,7 +243,7 @@ class EntityManager:
     #         return statement
     # 
     #     # launch the recursive call to the function
-    #     fill_statement(self.payload, stm)
+    #     fill_statement(payload, stm)
     # 
     #     return stm
 
@@ -349,7 +331,7 @@ class EntityManager:
     #
     #     except Error as e:
     #         print(f"The error '{e}' occurred")
-    #
+
     # def verify_data(self, table, col_name, value):
     #     """Verify if row already exists in a table.
     #
@@ -382,7 +364,7 @@ class EntityManager:
     #
     #     except Error as e:
     #         print(f"The error '{e}' occurred")
-    #
+
     # def update_data(self, table, cols, new_value, condition):
     #     """Modify data from table on condition."""
     #
@@ -399,7 +381,7 @@ class EntityManager:
     #
     #     except Error as e:
     #         print(f"The error '{e}' occurred")
-    #
+
     # def delete_data(self, table, condition):
     #     """Delete data from table on condition."""
     #

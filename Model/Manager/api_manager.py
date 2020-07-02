@@ -4,16 +4,17 @@ Fetch the data from an external repository,
 and deal with the reformatting of the data.
 """
 
-
 import requests
 
 from Model.Entity.category import Category
 from Model.Entity.product import Product
 from Model.Entity.store import Store
 
+from Model.Manager.entity_manager import EntityManager
+
+
 import Static.credential as credential
 import Static.constant as constant
-import Static.sql_queries as queries
 
 
 class APIManager:
@@ -29,6 +30,7 @@ class APIManager:
         self.page_size = page_size
         self.page = page
         self.products = []
+
         # self.categories = []  # variable used only for the development
         # self.stores = []  # variable used only for the development
         # self.category_census = []  # variable used only for the development
@@ -43,8 +45,9 @@ class APIManager:
 
         parameters = constant.API_PARAMETERS.copy()
 
-        # use page to fractionate the call to the api in different requests to cap the load
+        # use 'page' to fractionate the call to the api in different requests to cap the load
         for page_number in range(1, self.page + 1):
+
             # iterate on the method, by modifying the parameter 'page'
             pages = {
                     'page_size': self.page_size,
@@ -54,7 +57,6 @@ class APIManager:
 
             # execute the request
             answer = requests.get(self.url, params=parameters)
-
             # call the function iteratively, to extract the data
             self.clean_response(answer)
 
@@ -70,14 +72,12 @@ class APIManager:
         # loop over each product in the json content of 'request' (an object of class Response)
         for outline in request.json()['products']:
 
-            # filter products to keep exclusively those with complying values
             # use if/else as a filter, to keep products with categories in french
             if outline['categories_lc'] == 'fr':
 
-                # use try/except when we create instances of 'Product',
-                # as a filter to discard products with missing values
+                # use try/except as a filter, to discard instances of 'Product' with missing values
                 try:
-                    # try to create an instance of class 'Product' with every required value
+                    # try to create an instance of class 'Product' with required values
                     product = Product(
                             name=outline['product_name_fr'],
                             nutriscore=outline['nutriscore_score'],
@@ -85,30 +85,29 @@ class APIManager:
                             categories=outline['categories'],
                             stores=outline['stores']
                     )
-
-                    # if a value is empty, discard this product and jump to the next
+                    # discard this instance and jump to the next, if a value is empty
                     if any(product.get_values()) == "":
                         raise KeyError
-
-                # if a value is missing, discard this product and jump to the next
+                # discard this instance and jump to the next, if a value is missing
                 except KeyError:
                     continue
-
-                # if no exception is raised,
-                # this instance of product is not discarded and it is added to the list
-                # the else clause is a follow-up to the successfull execution of the try clause
+                # this instance is added to the list, if no exception is raised
                 else:
                     self.products.append(product)
 
-            # if the product has no categories in french,
-            # discard it and continue to the next product
+            # discard this instance of product, if it has no categories in french
             else:
                 continue
 
         return self.products
 
-    def download_data(self):
-        pass
+    def download_data(self, entity=EntityManager()):
+        """Call an entity manager to use its method to insert a load of data in the DB."""
+
+        if len(self.products) == 0:
+            self.get_data()
+
+        return entity.save_all(self.products)
 
 #     # method used only for the development
 #     def set_category_instances(self):
@@ -120,7 +119,7 @@ class APIManager:
 #         for p in self.products:
 #             self.categories += p.categories
 #         return self.categories
-#
+
 #     # method used only for the development
 #     def set_category_census(self):
 #         """Create an object listing every instances of 'Category'
@@ -158,7 +157,7 @@ class APIManager:
 #             self.category_census.append(case)
 #
 #         return self.category_census
-#
+
 #     # method used only for the development
 #     def set_store_instances(self):
 #         """Create a list with every instances of 'Store'.
@@ -169,7 +168,7 @@ class APIManager:
 #         for p in self.products:
 #             self.stores += p.stores
 #         return self.stores
-#
+
 #     # method used only for the development
 #     def set_store_census(self):
 #         """Create an object listing every instances of 'Store'
@@ -219,7 +218,7 @@ class APIManager:
 #
 #         else:
 #             return "status code of the API: {}".format(str(response.status_code))
-#
+
 #     # method to be developed (if needed)
 #     def call_db(self):
 #         # use self.products when it is full
