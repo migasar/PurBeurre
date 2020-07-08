@@ -22,16 +22,9 @@ class Product:
         The idea with this representation is to call a string similar to the command used to instanciate the object.
         """
 
-        return (f"{self.__class__.__name__}("
-                f"({', '. join([str(v) for v in self.__dict__.values()])})")
-
-    def __str__(self):
-        """Create a more readable string representation of the object.
-
-        The idea with this string method is to print a representation with just the name attribute of the instance/
-        """
-
-        return f"{self.name}"
+        values_list = [("'" + str(v) + "'") for v in self.__dict__.values() if v is not None]
+        return (f"{self.__class__.__name__}"
+                f"({', '.join([v for v in values_list])})")
 
     @staticmethod
     def set_categories(categories, product=None):
@@ -123,6 +116,9 @@ class Product:
         It will be used as a parameter in the creation of queries (as a string of column names)."""
 
         headers = tuple([k for k, v in self.__dict__.items() if v is not None and type(v) is not list])
+        if len(headers) == 1:
+            headers = ("("+str(headers[0])+")")
+
         return headers
 
     def get_values(self):
@@ -136,13 +132,3 @@ class Product:
                 ] for v in self.__dict__.values() if v is not None
         ]
         return values
-
-    def get_row(self):
-        """Create a list with every element used as a parameter, in the creation of a query to insert a row."""
-
-        row_listing = [
-                self.__class__.__name__,
-                self.get_headers(),
-                self.get_values()
-        ]
-        return row_listing

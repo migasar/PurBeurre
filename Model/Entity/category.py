@@ -16,13 +16,29 @@ class Category:
         The idea with this representation is to call a string similar to the command used to instanciate the object.
         """
 
-        return (f"{self.__class__.__name__}("
-                f"({', '. join([str(v) for v in self.__dict__.values()])})")
+        values_list = [("'"+str(v)+"'") for v in self.__dict__.values() if v is not None]
+        return (f"{self.__class__.__name__}"
+                f"({', '. join([v for v in values_list])})")
 
-    def __str__(self):
-        """Create a more readable string representation of the object.
+    def get_headers(self):
+        """Create a tuple with the name of attributes (which are not empty).
 
-        The idea with this string method is to print a representation with just the name attribute of the instance/
-        """
+        It will be used as a parameter in the creation of queries (as a string of column names)."""
 
-        return f"{self.name}"
+        headers = tuple([k for k, v in self.__dict__.items() if v is not None and type(v) is not list])
+        if len(headers) == 1:
+            headers = ("("+str(headers[0])+")")
+
+        return headers
+
+    def get_values(self):
+        """Create a list with the values of attributes (which are not empty).
+
+        It will be used as a parameter in the creation of queries (as a row of values)."""
+
+        values = [
+                v if type(v) is not list else [
+                        str(x) for x in v
+                ] for v in self.__dict__.values() if v is not None
+        ]
+        return values
