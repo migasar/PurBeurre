@@ -19,81 +19,69 @@ import Static.constant as constant
 import Static.sql_queries as queries
 
 
-#  DB CONNECTION
-def create_database():
-
-    # CREATE DATABASE
-    db_builder = DBManager()
-    db_builder.build_database()
-    print("db created !")
-
-    return db_builder
-
-
-#  API CALL
-def call_api():
-
-    # CREATE API
-    api_caller = APIManager()
-    print("api created !")
-    api_caller.get_data()
-    print("request executed !")
-
-    return api_caller
-
-
-#  ENTITY INTERACTION
-def create_entity(db_manager):
-
-    # CREATE ENTITY MANAGER
-    entity_manager = EntityManager(db_manager)
-    print("entity manager created !")
-
-    return entity_manager
-
-
-#  DATA DOWNLOAD
-def download_data(api_manager, entity_manager):
-
-    # SAVE DATA IN DB
-    api_manager.download_data(entity_manager)
-    print("data saved in db !")
-
-    return api_manager
-
-
-#  MAIN
 def main():
     """Launch the program by calling the first modules of its internal process"""
+
+    def create_database():
+        # CREATE DATABASE AND DB CONNECTION
+        db_builder = DBManager()
+        db_builder.build_database()
+        print("db created !")
+
+        return db_builder
+
+    def call_api():
+        # CREATE API
+        api_caller = APIManager()
+        print("api created !")
+        api_caller.get_data()
+        print("request executed !")
+
+        return api_caller
+
+    def create_entity_manager(db_manager):
+        # CREATE ENTITY MANAGER
+        entity_manager = EntityManager(db_manager)
+        print("entity manager created !")
+
+        return entity_manager
+
+    def download_data(api_manager, entity_manager):
+        # SAVE DATA IN DB
+        api_manager.download_data(entity_manager)
+        print("data saved in db !")
+
+        return api_manager
 
     ###########
     # ACTIONS #
     ###########
+    print()
     db = create_database()
     api = call_api()
-
-    entity = create_entity(db)
+    entity = create_entity_manager(db)
     download = download_data(api, entity)
+    print()
 
     #########
     # TESTS #
     #########
-
+    print()
     # DB #
-    print(f"type of db: {type(db)}")
-    print(f"db class name: {db.__class__.__name__}")
+    # print(f"type of db: {type(db)}")
+    # print(f"db class name: {db.__class__.__name__}")
 
-    # ENTITY #
-    print(f"type of entity: {type(entity)}")
-    print(f"entity class name: {entity.__class__.__name__}")
+    # ENTITY MANAGER #
+    # print(f"type of entity: {type(entity)}")
+    # print(f"entity class name: {entity.__class__.__name__}")
     # print(f"type of entity.database: {type(entity.database)}")
     # print(f"type of entity.connection: {type(entity.connection)}")
     # print(f"type of entity.cursor: {type(entity.cursor)}")
 
     # API #
-    print(f"type of API: {type(api)}")
-    print(f"api class: {api.__class__.__name__}")
-    print(f"api attributes: {api.__dict__.keys()}")
+    # print(f"type of API: {type(api)}")
+    # print(f"api class: {api.__class__.__name__}")
+    # print(f"api attributes: {api.__dict__.keys()}")
 
     # API PRODUCTS
     print(f"type of api.products: {type(api.products)}")
@@ -104,11 +92,16 @@ def main():
     #     print(f"number of categories: {len(prod.categories)}")
     #     print(f"categories: {[cat.name for cat in prod.categories]}")
 
+    # print(f"keys of first api.products: {api.products[0].__dict__.keys()}")
+    # for k, v in api.products[0].__dict__.items():
+    #     print(f"key: {k}")
+    #     print(f"values: {v}")
+
     # API CATEGORIES
     # print(f"length of api.categories: {len(api.categories)}")
+    # print(f"api.category[0] attributes: {api.categories[0].__dict__}")
     # for i in api.categories:
     #     print(f"{i.name}: {i.products}")
-    # print(f"api.category[0] attributes: {api.categories[0].__dict__}")
 
     # API STORES
     # print(f"length of api.stores: {len(api.stores)}")
@@ -117,23 +110,44 @@ def main():
     #         print("!! Lost !!")
     #     print(i.name)
 
+    # print()
+    # LIST COMPREHENSION #
+    # sample = ['en:breakfasts', 'en:spreads', 'en:sweet-spreads', 'fr:pates-a-tartiner']
+    # extraction = [sam[3:] for sam in sample if ('fr' in sam)]
+    # print(f"extraction: {extraction}")
+
+    # STRINGS #
+    # print(f"my list: {', '.join(['%s'] * 5)}")
+    # my_dict = {
+    #         'a': [1, 2],
+    #         'b': [3, 4],
+    #         'c': [5, 6]
+    # }
+    # fields = ', '.join(my_dict.keys())
+    # values = ', '.join(['%%(%s)s' % x for x in my_dict])
+    # query = f"INSERT INTO some_table (%s) VALUES (%s)" % (fields, values)
+    # print(f"query: {str(query)}")
+    # valco = ', '.join([f'%({x})s' for x in my_dict])
+    # print(f"valco: {valco}")
+
+    print()
     # SQL #
 
     # CHECK TABLES
     # db.cursor.execute("SHOW TABLES")
     # tables = db.cursor.fetchall()
-    # print("DB tables:")
-    # for table in tables:
-    #     print(table)
+    # # print(f"DB tables: {tables}")
     # py_tables = [tab[0] for tab in tables]
     # print(f"tables: {py_tables}")
+    # print()
 
     # CHECK COLUMNS IN TABLES
     # db.cursor.execute("DESC product")
-    # prod_columns = db.cursor.fetchall()
-    # print(prod_columns)
-    # for column in prod_columns:
-    #     print(column)
+    # product_columns = db.cursor.fetchall()
+    # print(f"product columns: {product_columns}")
+    # for column in product_columns:
+    #     print(f"column: {column}")
+    print()
 
     # INSERT PRODUCT IN DB
     # product_data = {
@@ -148,31 +162,22 @@ def main():
     # print(db.cursor.rowcount, " product inserted !")
 
     # CHECK PRODUCTS IN TABLE
-    # query = "SELECT * FROM product"
-    # db.cursor.execute(query)
-    # records = db.cursor.fetchall()
-    # print("records: ")
+    query = "SELECT * FROM product"
+    db.cursor.execute(query)
+    records = db.cursor.fetchall()
+    print("product records: ")
     # print(records)
+    for record in records:
+        print(record)
 
-    # LIST COMPREHENSION #
-    # sample = ['en:breakfasts', 'en:spreads', 'en:sweet-spreads', 'fr:pates-a-tartiner']
-    # extraction = [sam[3:] for sam in sample if ('fr' in sam)]
-    # print(f"extraction: {extraction}")
-
-    # STRINGS #
-    # print(f"my list: {', '.join(['%s'] * 5)}")
-    # my_dict = {
-    #         'a': [1, 2],
-    #         'b': [3, 4],
-    #         'c': [5, 6]
-    # }
-
-    # fields = ', '.join(my_dict.keys())
-    # values = ', '.join(['%%(%s)s' % x for x in my_dict])
-    # query = f"INSERT INTO some_table (%s) VALUES (%s)" % (fields, values)
-    # print(f"query: {str(query)}")
-    # valco = ', '.join([f'%({x})s' for x in my_dict])
-    # print(f"valco: {valco}")
+    # CHECK CATEGORIES IN TABLE
+    query = "SELECT * FROM category"
+    db.cursor.execute(query)
+    records = db.cursor.fetchall()
+    print("category records: ")
+    # print(records)
+    for record in records:
+        print(record)
 
     ############
     ############
