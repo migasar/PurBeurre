@@ -70,8 +70,10 @@ class DBManager(Borg):
                         user=self.user_name,
                         passwd=self.user_password
                 )
+
             except Error as e:
                 print(f"The error'{e}' occured")
+
             return self.connection
 
         # create a connection specifically to a database
@@ -83,8 +85,10 @@ class DBManager(Borg):
                         passwd=self.user_password,
                         database=self.db_name
                 )
+
             except Error as e:
                 print(f"The error'{e}' occured")
+
             return self.connection
 
     def build_database(self, filepath=constant.SCHEMA_PATH):
@@ -101,7 +105,7 @@ class DBManager(Borg):
             # explicitly split every query inside the file
             sql_file = sql_file.split(';')
 
-        # execute, one by one,every query from the schema
+        # execute, one by one, every query from the schema
         for line in sql_file:
             self.cursor.execute(line)
 

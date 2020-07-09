@@ -35,15 +35,17 @@ class APIManager:
         parameters = constant.API_PARAMETERS.copy()
         # use 'page_number' to fractionate the call to the api in different requests to cap the load
         for page_number in range(1, self.page_number + 1):
+
             # iterate on the method, by modifying the parameter 'page_number'
             pages = {
                     'page_size': self.page_size,
                     'page_number': page_number
             }
             parameters.update(pages)
+
             # execute the request
             answer = requests.get(self.url, params=parameters)
-            # call the function iteratively, to extract the data
+            # call the method to extract the data
             self.clean_response(answer)
 
         return self.products
@@ -57,8 +59,10 @@ class APIManager:
 
         # loop over each product in the json content of 'request' (an object of class Response)
         for outline in request.json()['products']:
+
             # use if/else as a filter, to keep products with categories in french
             if outline['categories_lc'] == 'fr':
+
                 # use try/except as a filter, to discard instances of 'Product' with missing values
                 try:
                     # try to create an instance of class 'Product' with required values
@@ -72,12 +76,15 @@ class APIManager:
                     # discard this instance and jump to the next, if a value is empty
                     if any(product.get_values()) == "":
                         raise KeyError
+
                 # discard this instance and jump to the next, if a value is missing
                 except KeyError:
                     continue
-                # this instance is added to the list, if no exception is raised
+
+                # finally if no exception is raised, this instance is added to the list
                 else:
                     self.products.append(product)
+
             # discard this instance of product, if it has no categories in french
             else:
                 continue

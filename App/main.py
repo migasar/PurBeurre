@@ -22,37 +22,43 @@ import Static.sql_queries as queries
 def main():
     """Launch the program by calling the first modules of its internal process"""
 
+    # FUNCTIONS
+
     def create_database():
         # CREATE DATABASE AND DB CONNECTION
+
         db_builder = DBManager()
         db_builder.build_database()
-        print("db created !")
+        print("DB created !")
 
         return db_builder
 
     def call_api():
         # CREATE API
+
         api_caller = APIManager()
-        print("api created !")
         api_caller.get_data()
-        print("request executed !")
+        print("API called !")
 
         return api_caller
 
     def create_entity_manager(db_manager):
         # CREATE ENTITY MANAGER
+
         entity_manager = EntityManager(db_manager)
-        print("entity manager created !")
+        print("Entity Manager created !")
 
         return entity_manager
 
     def download_data(api_manager, entity_manager):
         # SAVE DATA IN DB
+
         api_manager.download_data(entity_manager)
-        print("data saved in db !")
+        print("Data downloaded !")
 
         return api_manager
 
+    # ACTIONS
     db = create_database()
     api = call_api()
     entity = create_entity_manager(db)

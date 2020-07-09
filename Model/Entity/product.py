@@ -16,15 +16,40 @@ class Product:
         self.stores = self.set_stores(stores)
         self._id = _id
 
-    def __repr__(self):
-        """Create a more usable representation of the object.
+    # def __repr__(self):
+    #     """Create a more usable representation of the object.
+    #
+    #     The idea with this representation is to call a string similar to the command used to instanciate the object.
+    #     """
+    #
+    #     values_list = [("'" + str(v) + "'") for v in self.__dict__.values() if v is not None]
+    #
+    #     return (f"{self.__class__.__name__}"
+    #             f"({', '.join([v for v in values_list])})")
 
-        The idea with this representation is to call a string similar to the command used to instanciate the object.
-        """
+    def get_headers(self):
+        """Create a tuple with the name of attributes (which are not empty).
 
-        values_list = [("'" + str(v) + "'") for v in self.__dict__.values() if v is not None]
-        return (f"{self.__class__.__name__}"
-                f"({', '.join([v for v in values_list])})")
+        It will be used as a parameter in the creation of queries (as a string of column names)."""
+
+        headers = tuple([k for k, v in self.__dict__.items() if v is not None and type(v) is not list])
+        if len(headers) == 1:
+            headers = ("("+str(headers[0])+")")
+
+        return headers
+
+    def get_values(self):
+        """Create a list with the values of attributes (which are not empty).
+
+        It will be used as a parameter in the creation of queries (as a row of values)."""
+
+        values = [
+                v if type(v) is not list else [
+                        x for x in v
+                ] for v in self.__dict__.values() if v is not None
+        ]
+
+        return values
 
     @staticmethod
     def set_categories(categories, product=None):
@@ -40,12 +65,11 @@ class Product:
 
         # test if the content of the variable is not yet an instance
         elif type(categories) is str:
-
             # create a list of instances
             cats = []
             for cat in categories.split(','):
-
                 # use try/except as a filter, to discard instances of 'Category' with missing values
+
                 try:
                     # try to create an instance of class 'Category' with required values
                     category = Category(
@@ -55,10 +79,12 @@ class Product:
                     # discard this instance and jump to the next, if a value is empty
                     if category.name == "":
                         raise KeyError
+
                 # discard this instance and jump to the next, if a value is missing
                 except KeyError:
                     continue
-                # this instance is added to the list, if no exception is raised
+
+                # finally if no exception is raised, this instance is added to the list
                 else:
                     cats.append(category)
 
@@ -82,7 +108,6 @@ class Product:
 
         # test if the content of the variable is not yet an instance
         elif type(stores) is str:
-
             # create a list of instances
             shops = []
             for shop in stores.split(','):
@@ -97,10 +122,12 @@ class Product:
                     # discard this instance and jump to the next, if a value is empty
                     if store.name == "":
                         raise KeyError
+
                 # discard this instance and jump to the next, if a value is missing
                 except KeyError:
                     continue
-                # this instance is added to the list, if no exception is raised
+
+                # finally if no exception is raised, this instance is added to the list
                 else:
                     shops.append(store)
 
@@ -109,33 +136,3 @@ class Product:
         else:
             # assume that the instances have been initiated
             return stores
-
-    def get_headers(self):
-        """Create a tuple with the name of attributes (which are not empty).
-
-        It will be used as a parameter in the creation of queries (as a string of column names)."""
-
-        headers = tuple([k for k, v in self.__dict__.items() if v is not None and type(v) is not list])
-        if len(headers) == 1:
-            headers = ("("+str(headers[0])+")")
-
-        return headers
-
-    def get_values(self):
-        """Create a list with the values of attributes (which are not empty).
-
-        It will be used as a parameter in the creation of queries (as a row of values)."""
-
-        # values = [
-        #         v if type(v) is not list else [
-        #                 str(x) for x in v
-        #         ] for v in self.__dict__.values() if v is not None
-        # ]
-
-        values = [
-                v if type(v) is not list else [
-                        x for x in v
-                ] for v in self.__dict__.values() if v is not None
-        ]
-
-        return values

@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS `product` (
   PRIMARY KEY (`prod_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
 DROP TABLE IF EXISTS `category` ;
 CREATE TABLE IF NOT EXISTS `category` (
   `cat_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -24,14 +23,12 @@ CREATE TABLE IF NOT EXISTS `category` (
   PRIMARY KEY (`cat_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
 DROP TABLE IF EXISTS `store` ;
 CREATE TABLE IF NOT EXISTS `store` (
   `shop_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(250) DEFAULT NULL,
   PRIMARY KEY (`shop_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 
 DROP TABLE IF EXISTS `favorite_product` ;
 CREATE TABLE IF NOT EXISTS `favorite_product` (
@@ -44,7 +41,6 @@ CREATE TABLE IF NOT EXISTS `favorite_product` (
   CONSTRAINT `fk_favorite_product2` FOREIGN KEY (`substitute_product_id`) REFERENCES `product` (`prod_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
 DROP TABLE IF EXISTS `category_product` ;
 CREATE TABLE IF NOT EXISTS `category_product` (
   `category_id` int(11) NOT NULL,
@@ -55,7 +51,6 @@ CREATE TABLE IF NOT EXISTS `category_product` (
   CONSTRAINT `fk_category_product_category` FOREIGN KEY (`category_id`) REFERENCES `category` (`cat_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_category_product_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`prod_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 
 DROP TABLE IF EXISTS `store_product` ;
 CREATE TABLE IF NOT EXISTS `store_product` (
