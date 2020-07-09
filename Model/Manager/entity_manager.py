@@ -10,6 +10,7 @@ It contains the methods CRUD of the program:
 
 from mysql.connector import Error
 
+from Model.Entity.product import Product
 from Model.Entity.category import Category
 from Model.Entity.store import Store
 
@@ -32,52 +33,47 @@ class EntityManager:
 
         queries = []
 
-        # go through the list of instances of 'Product'
-        for instance in payload:
+        def parameterize_instance(component):
 
             # create a row, for each instance
-            insta_values = []
+            component_values = []
+
             # fetch each value of the instance (using an internal method of the instance)
-            for attribute in instance.get_values():
-
+            for value in component.get_values():
                 # fetch the values of the instance of product (if the value is not a list)
-                if type(attribute) is list:
-
+                if type(value) is list:
                     # if the value is a list, we assume that it is a list of instances of 'Store' or 'Category'
-                    for element in attribute:
-
-                        # create an instance of the entity
-                        instalment = eval(element)
-
-                        if type(instalment) is Category or Store:
-
-                            # format the value of the instance
-                            instalment_values = [att for att in instalment.get_values()]
-                            if len(instalment_values) == 1:
-                                instalment_values = str("'" + str(instalment_values[0]) + "'")
-
-                            # format a row per instance
-                            row_values = str("("+instalment_values+")")
-                            # set the parameters of the query, for each instance
-                            table_name = instalment.__class__.__name__.lower()
-                            table_headers = str(instalment.get_headers()).replace("'", "")
-                            # skeleton of each query
-                            query = (
-                                    f"INSERT INTO {table_name} "
-                                    f"{table_headers} "
-                                    f"VALUES {row_values}"
-                            )
-                            # filling the list of 'queries'
-                            queries.append(query)
+                    parameterize_entity(value)
                 else:
                     # take the value as it is
-                    insta_values.append(attribute)
+                    component_values.append(value)
+
+            format_query(component, component_values)
+
+        def parameterize_entity(aspect):
+
+            # if the value is a list, we assume that it is a list of instances of 'Store' or 'Category'
+            for component in aspect:
+
+                if type(component) is Category or Store:
+                    # format the value of the instance
+                    compoment_values = [att for att in component.get_values()]
+
+                    format_query(component, compoment_values)
+
+        def format_query(parameter, parameter_values):
 
             # format a row per instance of product
-            row_values = str(tuple(insta_values))
+            if len(parameter_values) == 1:
+                instance_single_value = str("'" + str(parameter_values[0]) + "'")
+                row_values = str("(" + instance_single_value + ")")
+            else:
+                row_values = str(tuple(parameter_values))
+
             # set the parameters of the query, for each instance
-            table_name = instance.__class__.__name__.lower()
-            table_headers = str(instance.get_headers()).replace("'", "")
+            table_name = parameter.__class__.__name__.lower()
+            table_headers = str(parameter.get_headers()).replace("'", "")
+
             # skeleton of each query
             query = (
                     f"INSERT INTO {table_name} "
@@ -87,13 +83,138 @@ class EntityManager:
             # filling the list of 'queries'
             queries.append(query)
 
+        # go through the list of instances of 'Product'
+        for instance in payload:
+            parameterize_instance(instance)
+
+        # queries = []
+        #
+        # def format_query(load=payload):
+        #
+        #     for instance in load:
+        #
+        #         # print(f"instance: {instance}")
+        #         # for i in instance.get_values():
+        #         #     print(f"element: {i}, {type(i)}")
+        #         #     if type(i) is list:
+        #         #         for j in i:
+        #         #             print(f"atoms: {j}, {type(j)}")
+        #
+        #         instance_values = []
+        #
+        #         for element in instance.get_values():
+        #
+        #             if type(element) is list:
+        #                 # Recursion on the list of entities
+        #                 format_query(element)
+        #
+        #             else:
+        #                 if type(element) is Category or Store:
+        #
+        #                     # print(f"instalment: {element}")
+        #                     # print(f"instalment type: {type(element)}")
+        #
+        #                     instalment = eval(element)
+        #                     instalment_values = [att for att in instalment.get_values()]
+        #
+        #                 else:
+        #                     instance_values.append(element)
+        #
+        #                 # Parameters
+        #                 if len(instalment_values) == 1:
+        #                     instalment_values = str("'" + str(instalment_values[0]) + "'")
+        #                     row_values = str("(" + instalment_values + ")")
+        #                 else:
+        #                     row_values = str(tuple(instalment_values))
+        #
+        #                 table_name = instalment.__class__.__name__.lower()
+        #                 table_headers = str(instalment.get_headers()).replace("'", "")
+        #
+        #                 # Query
+        #                 query = (
+        #                         f"INSERT INTO {table_name} "
+        #                         f"{table_headers} "
+        #                         f"VALUES {row_values}"
+        #                 )
+        #                 queries.append(query)
+        #
+        # format_query(payload)
+
+        # queries = []
+        # def format_query(instance, queries=queries):
+        #     print(f"instance type: {type(instance)}")
+        #     print(f"instance: {instance}")
+        #     if type(instance) is not list:
+        #         instance_values = instance.get_values()
+        #     else:
+        #         instance_values = instance
+        #     print(f"instance_values type: {type(instance_values)}")
+        #     print(f"instance_values: {instance_values}")
+        #     # for attribute in instance.get_values():
+        #     #     pass
+        #     # format the value of the instance
+        #     if len(instance_values) == 1:
+        #         instance_value = str("'" + str(instance_values[0]) + "'")
+        #         # format a row per instance
+        #         row_values = str("(" + instance_value + ")")
+        #     else:
+        #         instance_values = []
+        #         for attribute in instance_values:
+        #             if type(attribute) is not list:
+        #                 instance_values.append(attribute)
+        #             elif type(attribute) is list:
+        #                 format_query(attribute, queries)
+        #         # format a row per instance
+        #         row_values = str(tuple(instance_values))
+        #     # set the parameters of the query, for each instance
+        #     table_name = instance.__class__.__name__.lower()
+        #     table_headers = str(instance.get_headers()).replace("'", "")
+        #     # skeleton of each query
+        #     query = (
+        #             f"INSERT INTO {table_name} "
+        #             f"{table_headers} "
+        #             f"VALUES {row_values}"
+        #     )
+        #     # filling the list of 'queries'
+        #     queries.append(query)
+        # for instalment in payload:
+        #     format_query(instalment)
+
+        # queries = []
+        #
+        # def format_row_parameter(load):
+        #
+        #     if isinstance(load, (Product, Category, Store)):
+        #         for element in load.get_values():
+        #             format_row_parameter(element)
+        #
+        #     else:
+        #         instance_values = []
+        #
+        #         for element in load:
+        #
+        #             if isinstance(element, list):
+        #                 for component in element:
+        #                     instalment = eval(component)
+        #                     format_row_parameter(instalment)
+        #
+        #             else:
+        #                 instance_values.append(element)
+        #
+        #         format_query(load, instance_values)
+
+        # for instance in payload:
+        #     format_row_parameter(instance)
+
         # try to execute every query in one command to the db
         try:
             statement = str('; '.join(queries))
             # yield each statement in the generator expression (created with parameter 'multi=True')
+
             for _ in (self.db.cursor.execute(statement, multi=True)):
-                print(self.db.cursor.statement)
+                continue
             self.db.connection.commit()
+
         except Error as e:
             print(f"The error '{e}' occurred")
 
@@ -139,16 +260,6 @@ class EntityManager:
 
     def save_all(self, payload):
         """Insert multiple rows in a table."""
-        """
-        parcours la liste:
-            liste les attributs et pour chacune d'eux:
-                si l'attribut contient une liste:
-                    enregistre (pas dans la base) les objets à insérer
-                sinon:
-                    enregistrer la valeur (pas dans la base hein)
-
-        ici on se retrouve avec une très grande string de multiples insert into
-        """
 
         # parameters of the query
         table_name = payload[0].__class__.__name__.lower()

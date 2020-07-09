@@ -20,18 +20,6 @@ class Store:
         return (f"{self.__class__.__name__}"
                 f"({', '.join([v for v in values_list])})")
 
-    def get_values(self):
-        """Create a list with the values of attributes (which are not empty).
-
-        It will be used as a parameter in the creation of queries (as a row of values)."""
-
-        values = [
-                v if type(v) is not list else [
-                        str(x) for x in v
-                ] for v in self.__dict__.values() if v is not None
-        ]
-        return values
-
     def get_headers(self):
         """Create a tuple with the name of attributes (which are not empty).
 
@@ -42,3 +30,22 @@ class Store:
             headers = ("("+str(headers[0])+")")
 
         return headers
+
+    def get_values(self):
+        """Create a list with the values of attributes (which are not empty).
+
+        It will be used as a parameter in the creation of queries (as a row of values)."""
+
+        # values = [
+        #         v if type(v) is not list else [
+        #                 str(x) for x in v
+        #         ] for v in self.__dict__.values() if v is not None
+        # ]
+
+        values = [
+                v if type(v) is not list else [
+                        x for x in v
+                ] for v in self.__dict__.values() if v is not None
+        ]
+
+        return values

@@ -126,9 +126,16 @@ class Product:
 
         It will be used as a parameter in the creation of queries (as a row of values)."""
 
+        # values = [
+        #         v if type(v) is not list else [
+        #                 str(x) for x in v
+        #         ] for v in self.__dict__.values() if v is not None
+        # ]
+
         values = [
                 v if type(v) is not list else [
-                        str(x) for x in v
+                        x for x in v
                 ] for v in self.__dict__.values() if v is not None
         ]
+
         return values
