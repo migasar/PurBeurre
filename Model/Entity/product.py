@@ -7,25 +7,25 @@ from Model.Entity.store import Store
 class Product:
     """Create an object describing one product."""
 
-    def __init__(self, name, nutriscore, url, categories=None, stores=None, _id=None):
+    def __init__(self, name, nutriscore, url, categories=None, stores=None, product_id=None):
 
         self.name = name
         self.nutriscore = nutriscore
         self.url = url
         self.categories = self.set_categories(categories)
         self.stores = self.set_stores(stores)
-        self._id = _id
+        self.product_id = product_id
 
-    # def __repr__(self):
-    #     """Create a more usable representation of the object.
-    #
-    #     The idea with this representation is to call a string similar to the command used to instanciate the object.
-    #     """
-    #
-    #     values_list = [("'" + str(v) + "'") for v in self.__dict__.values() if v is not None]
-    #
-    #     return (f"{self.__class__.__name__}"
-    #             f"({', '.join([v for v in values_list])})")
+    def __repr__(self):
+        """Create a more usable representation of the object.
+
+        The idea with this representation is to call a string similar to the command used to instanciate the object.
+        """
+
+        values_list = [("'" + str(v) + "'") for v in self.__dict__.values() if v is not None]
+
+        return (f"{self.__class__.__name__}"
+                f"({', '.join([v for v in values_list])})")
 
     def get_headers(self):
         """Create a tuple with the name of attributes (which are not empty).

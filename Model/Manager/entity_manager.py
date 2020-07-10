@@ -42,8 +42,9 @@ class EntityManager:
         This process is initiated by calling the method 'parameterize_product()',
         this method will drive a chain of calls to the other methods as needed.
         
-        The result will be a list of queries which will be coerced in a long string,
-        and then send to the db.
+        The result will be a list of queries.
+        The list will be reversed (because its order will matter for the execution of the commands to the database).
+        After that, the list will be coerced in a long string,and then send to the db.
         """
 
         # create an empty list where will be stacked the formatted queries (their order of creation matters)
@@ -52,59 +53,89 @@ class EntityManager:
         def parameterize_product(element):
             """Create the parameters for a query, from the attributes of an instance of 'Product'."""
 
-            # create a row, for each instance
+            # create a list of values for the row, from the instance
             element_values = []
+
             # fetch each value of the instance (using an internal method of the instance)
             for value in element.get_values():
 
                 # fetch the values of the instance of 'Product' (if the value is not a list)
                 if type(value) is list:
                     # if the value is a list, we assume that it is a list of instances of 'Store' or 'Category'
-                    parameterize_entities(value)
+                    parameterize_entities(value, element)
                 else:
                     # take the value as it is
                     element_values.append(value)
 
+            # send the parameters to the method that will conclude the creation of the query
             build_query(element, element_values)
 
-        def parameterize_entities(attribute):
+        def parameterize_entities(attribute, instalment):
             """Create the parameters for a query, from the attributes of an instance of 'Category' or 'Store'."""
 
             # if the value is a list, we assume that it is a list of instances of 'Store' or 'Category'
             for element in attribute:
 
-                # test if it is indeed an instance of 'Store' or 'Category'
+                # ensure that it is indeed an instance of 'Store' or 'Category'
                 if type(element) is Category or Store:
                     # format the value of the instance
                     element_values = [att for att in element.get_values()]
 
-                    build_query(element, element_values)
+                    # send the parameters to the method that will conclude the creation of the query
+                    build_query(element, element_values, instalment)
 
-        def build_query(parameter, parameter_values):
-            """Create a string used as a query, from a formatted string and the variables used as parameters."""
+        def build_query(parameter, parameter_values, instalment=None):
 
-            # format a row per instance of product
-            if len(parameter_values) == 1:
-                # if the parameter is from an instance of 'Category' or 'Store',
-                # it should have a length of 1, and it wouldn't work well to coerce it in a tuple
-                instance_single_value = str("'" + str(parameter_values[0]) + "'")
-                row_values = str("(" + instance_single_value + ")")
-                
-            else:
+            # set the main parameters of the query
+            table_name = parameter.__class__.__name__.lower()
+            table_headers = str(parameter.get_headers()).replace("'", "")
+
+            # set the parameter for the values of the row, in 2 possible ways
+            # depending if it concerns an instance of 'Product', or an instance from one of the other entities
+            if len(parameter_values) != 1:
                 # if the parameter is from an instance of 'Product',
                 # it should have a length of more than 1, and it would be easy to format it by coercing it in a tuple
                 row_values = str(tuple(parameter_values))
 
-            # set the parameters of the query, for each instance
-            table_name = parameter.__class__.__name__.lower()
-            table_headers = str(parameter.get_headers()).replace("'", "")
+            else:
+                # if the parameter is from an instance of 'Category' or 'Store',
+                # it should have a length of 1, and it wouldn't work well to coerce it in a tuple
+                instance_single_value = str("'" + str(parameter_values[0]) + "'")
+                row_values = str("(" + instance_single_value + ")")
 
-            # skeleton of each query
-            query = (
-                    f"INSERT INTO {table_name} "
-                    f"{table_headers} "
-                    f"VALUES {row_values}"
-            )
+            # format the string of the query with its parameters, in 2 possible ways
+            # depending if it concerns an instance of 'Product', or an instance from one of the other entities
+            if instalment is None:
+                # if the query concerns an instance of 'Product', it need less components
+
+                # skeleton of the query
+                query = (
+                        f"INSERT IGNORE INTO {table_name} "
+                        f"{table_headers} "
+                        f"VALUES {row_values}; "
+
+                        f"SET @{table_name}_id = LAST_INSERT_ID()"
+                )
+
+            else:
+                # if the query concerns an instance of 'Category' or 'Store',
+                # it should also include a component in charge of the insertion of a row in a table of association
+
+                # set the parameter needed for a table dedicated to many-to-many relationships
+                instance_name = instalment.__class__.__name__.lower()
+
+                # skeleton of the query
+                query = (
+                        f"INSERT IGNORE INTO {table_name} "
+                        f"{table_headers} "
+                        f"VALUES {row_values}; "
+    
+                        f"SET @{table_name}_id = LAST_INSERT_ID(); "
+    
+                        f"INSERT INTO {table_name}_{instance_name} "
+                        f"({table_name}_id, {instance_name}_id) "
+                        f"VALUES (@{table_name}_id, @{instance_name}_id)"
+                )
 
             # finally, the formatted query is added to the list of 'queries'
             queries.append(query)
@@ -118,9 +149,10 @@ class EntityManager:
         # try to execute every query in one command to the db
         try:
             # join together the elements of the list of queries, as one unique long string
+            queries.reverse()
             statement = str('; '.join(queries))
 
-            # yield each statement in the generator expression (created with parameter 'multi=True')
+            # run each statement in the generator expression (created with parameter 'multi=True')
             for _ in (self.db.cursor.execute(statement, multi=True)):
                 continue
             self.db.connection.commit()
