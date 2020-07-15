@@ -51,6 +51,16 @@ class Product:
 
         return values
 
+    def get_items(self):
+
+        items = {
+                k: v if type(v) is not list else [
+                        x for x in v
+                ] for (k, v) in self.__dict__.items() if v is not None
+        }
+
+        return items
+
     @staticmethod
     def set_categories(categories, product=None):
         """Modify the initiation of the attribute depending on its source.

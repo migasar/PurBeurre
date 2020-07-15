@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `category` (
 DROP TABLE IF EXISTS `store` ;
 CREATE TABLE IF NOT EXISTS `store` (
   `store_id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(250) DEFAULT NULL,
+  `name` varchar(250) DEFAULT NULL UNIQUE,
   PRIMARY KEY (`store_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

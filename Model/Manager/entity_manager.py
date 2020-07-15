@@ -30,135 +30,116 @@ class EntityManager:
     def insert_all(self, payload):
         """Insert multiple rows in a table.
 
-        The method 'insert_all' orchestrates a cascading call to its internal methods, 
+        The method 'insert_all' orchestrates the call to the methods
         to create a query to insert a row in the db for each instance in 'payload.'
-        
-        The process to create each query will be as follow:
-         - Per each instance of 'Product', 
-           we go through a process that will create a query for each entity found in this instance
-         - 1. a query for the instance of 'Product' per se
-         - 2. a query for each instances of 'Category' related to this product
-         - 3. a query for each instances of 'Store' related to this product
-        This process is initiated by calling the method 'parameterize_product()',
-        this method will drive a chain of calls to the other methods as needed.
-        
-        The result will be a list of queries.
-        The list will be reversed (because its order will matter for the execution of the commands to the database).
-        After that, the list will be coerced in a long string,and then send to the db.
+
+        The result will be a list of queries which will be coerced in a long string,
+        and then send to the db.
         """
 
-        # create an empty list where will be stacked the formatted queries (their order of creation matters)
+        # repository for the formatted queries
         queries = []
-
-        def parameterize_product(element):
-            """Create the parameters for a query, from the attributes of an instance of 'Product'."""
-
-            # create a list of values for the row, from the instance
-            element_values = []
-
-            # fetch each value of the instance (using an internal method of the instance)
-            for value in element.get_values():
-
-                # fetch the values of the instance of 'Product' (if the value is not a list)
-                if type(value) is list:
-                    # if the value is a list, we assume that it is a list of instances of 'Store' or 'Category'
-                    parameterize_entities(value, element)
-                else:
-                    # take the value as it is
-                    element_values.append(value)
-
-            # send the parameters to the method that will conclude the creation of the query
-            build_query(element, element_values)
-
-        def parameterize_entities(attribute, instalment):
-            """Create the parameters for a query, from the attributes of an instance of 'Category' or 'Store'."""
-
-            # if the value is a list, we assume that it is a list of instances of 'Store' or 'Category'
-            for element in attribute:
-
-                # ensure that it is indeed an instance of 'Store' or 'Category'
-                if type(element) is Category or Store:
-                    # format the value of the instance
-                    element_values = [att for att in element.get_values()]
-
-                    # send the parameters to the method that will conclude the creation of the query
-                    build_query(element, element_values, instalment)
-
-        def build_query(parameter, parameter_values, instalment=None):
-
-            # set the main parameters of the query
-            table_name = parameter.__class__.__name__.lower()
-            table_headers = str(parameter.get_headers()).replace("'", "")
-
-            # set the parameter for the values of the row, in 2 possible ways
-            # depending if it concerns an instance of 'Product', or an instance from one of the other entities
-            if len(parameter_values) != 1:
-                # if the parameter is from an instance of 'Product',
-                # it should have a length of more than 1, and it would be easy to format it by coercing it in a tuple
-                row_values = str(tuple(parameter_values))
-
-            else:
-                # if the parameter is from an instance of 'Category' or 'Store',
-                # it should have a length of 1, and it wouldn't work well to coerce it in a tuple
-                instance_single_value = str("'" + str(parameter_values[0]) + "'")
-                row_values = str("(" + instance_single_value + ")")
-
-            # format the string of the query with its parameters, in 2 possible ways
-            # depending if it concerns an instance of 'Product', or an instance from one of the other entities
-            if instalment is None:
-                # if the query concerns an instance of 'Product', it need less components
-
-                # skeleton of the query
-                query = (
-                        f"INSERT IGNORE INTO {table_name} "
-                        f"{table_headers} "
-                        f"VALUES {row_values}; "
-
-                        f"SET @{table_name}_id = LAST_INSERT_ID()"
-                )
-
-            else:
-                # if the query concerns an instance of 'Category' or 'Store',
-                # it should also include a component in charge of the insertion of a row in a table of association
-
-                # set the parameter needed for a table dedicated to many-to-many relationships
-                instance_name = instalment.__class__.__name__.lower()
-
-                # skeleton of the query
-                query = (
-                        f"INSERT IGNORE INTO {table_name} "
-                        f"{table_headers} "
-                        f"VALUES {row_values}; "
-    
-                        f"SET @{table_name}_id = LAST_INSERT_ID(); "
-    
-                        f"INSERT INTO {table_name}_{instance_name} "
-                        f"({table_name}_id, {instance_name}_id) "
-                        f"VALUES (@{table_name}_id, @{instance_name}_id)"
-                )
-
-            # finally, the formatted query is added to the list of 'queries'
+        # create a query for each instance of the list
+        for instance in payload:
+            query = self.create_query(instance)
             queries.append(query)
 
-        # go through the list of instances of 'Product'
-        for instance in payload:
-            # for each instance of 'Product', start the chained call to the internal methods 
-            # to create a query for each entity contained in the instance of 'Product' 
-            parameterize_product(instance)
+        # unpack the nested lists
+        request = self.unpack_listing(queries)
+        # reverse back the order of the stack of queries
+        request.reverse()
 
         # try to execute every query in one command to the db
         try:
             # join together the elements of the list of queries, as one unique long string
-            queries.reverse()
-            statement = str('; '.join(queries))
-
-            # run each statement in the generator expression (created with parameter 'multi=True')
+            statement = str('; '.join(request))
+            # yield each statement in the generator expression (created with parameter 'multi=True')
             for _ in (self.db.cursor.execute(statement, multi=True)):
                 continue
-            self.db.connection.commit()
-
         except Error as e:
             print(f"The error '{e}' occurred")
+
+    def create_query(self, instance, parent=None):
+        """Create a string used as a query, from a formatted string and the variables used as parameters."""
+
+        # repository for the formatted queries
+        children = []
+
+        # set the parameters
+        table_name = instance.__class__.__name__.lower()
+        row_keys = []
+        row_values = []
+        
+        # unpack the attributes of the instance
+        for attribute_key, attribute_value in instance.__dict__.items():
+            if attribute_value is None:
+                pass
+            elif type(attribute_value) is list:
+                # launch a recursive call if the attribute is a repository of other instances
+                for child in attribute_value:
+                    children.append(self.create_query(child, instance))
+            else:
+                # collect the variables needed to create a row of data
+                row_keys.append(attribute_key)
+                row_values.append(attribute_value)
+    
+        # format the parameters
+        if (len(row_keys) or len(row_values)) == 1:
+            single_row_key = str("'" + str(row_keys[0]) + "'")
+            row_keys = str("(" + single_row_key + ")").replace("'", "")
+            single_row_value = str("'" + str(row_values[0]) + "'")
+            row_values = str("(" + single_row_value + ")")
+        else:
+            row_keys = str(tuple(row_keys)).replace("'", "")
+            row_values = str(tuple(row_values))
+
+        # format the query
+        query = (
+                f"INSERT INTO {table_name}"
+                f" {row_keys}"
+                f" VALUES {row_values} "
+                f"ON DUPLICATE KEY UPDATE"
+                f" {table_name}_id=LAST_INSERT_ID({table_name}_id); "
+                f"SET @{table_name}_id = LAST_INSERT_ID()"
+        )
+        
+        # depending of the instance, modify the query to add a request for the tables of associations  
+        if parent is not None:
+            parent_name = parent.__class__.__name__.lower()
+
+            query_tail = (
+                    f"; "
+                    f"INSERT IGNORE INTO {table_name}_{parent_name}"
+                    f" ({table_name}_id, {parent_name}_id)"
+                    f" VALUES (@{table_name}_id, @{parent_name}_id)"
+            )
+            
+            query += query_tail
+
+        # finally, the formatted query is added to the list of 'queries'
+        children.append(query)
+
+        return children
+
+    def unpack_listing(self, payload, components=None):
+        """Serialize a nested list (of an unknown depth).
+        
+        It returns a flattened list with the same elements (they are all brought at the same level). 
+        """
+        
+        if components is None:
+            atoms = []
+        else:
+            atoms = components
+
+        for element in payload:
+            # if the function encounters another level, it launch a recursive call to bring its elements forward
+            if type(element) is list:
+                self.unpack_listing(element, atoms)
+            else:
+                atoms.append(element)
+                
+        return atoms
 
     def insert_one(self, instance):
         """Insert one row in a table."""

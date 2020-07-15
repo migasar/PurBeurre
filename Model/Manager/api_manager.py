@@ -19,7 +19,7 @@ class APIManager:
     - Create 'responses': a list of objects of class Response (from package requests).
     """
 
-    def __init__(self, url=constant.OFF_URL, page_size=3, page_number=2):
+    def __init__(self, url=constant.OFF_URL, page_size=5, page_number=5):
         self.url = url
         self.page_size = page_size
         self.page_number = page_number
