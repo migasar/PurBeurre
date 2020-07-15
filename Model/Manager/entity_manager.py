@@ -10,6 +10,7 @@ It contains the methods CRUD of the program:
 
 from mysql.connector import Error
 
+from Model.Entity.product import Product
 from Model.Entity.category import Category
 from Model.Entity.store import Store
 
@@ -41,8 +42,7 @@ class EntityManager:
         queries = []
         # create a query for each instance of the list
         for instance in payload:
-            query = self.create_query(instance)
-            queries.append(query)
+            queries.append(self.create_query(instance))
 
         # unpack the nested lists
         request = self.unpack_listing(queries)
@@ -106,14 +106,12 @@ class EntityManager:
         # depending of the instance, modify the query to add a request for the tables of associations  
         if parent is not None:
             parent_name = parent.__class__.__name__.lower()
-
             query_tail = (
                     f"; "
                     f"INSERT IGNORE INTO {table_name}_{parent_name}"
                     f" ({table_name}_id, {parent_name}_id)"
                     f" VALUES (@{table_name}_id, @{parent_name}_id)"
             )
-            
             query += query_tail
 
         # finally, the formatted query is added to the list of 'queries'
@@ -160,7 +158,6 @@ class EntityManager:
         record = []
         # fetch the values of the instance
         for val in instance.get_values():
-
             # if the value is a list, we assume that it is a list of instances of another entity
             if type(val) is list:
                 continue

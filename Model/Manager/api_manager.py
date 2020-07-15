@@ -33,6 +33,7 @@ class APIManager:
         """
 
         parameters = constant.API_PARAMETERS.copy()
+
         # use 'page_number' to fractionate the call to the api in different requests to cap the load
         for page_number in range(1, self.page_number + 1):
 
