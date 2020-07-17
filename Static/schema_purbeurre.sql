@@ -9,61 +9,61 @@ USE `purbeurre`;
 
 DROP TABLE IF EXISTS `product` ;
 CREATE TABLE IF NOT EXISTS `product` (
-  `product_id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_product` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(250) DEFAULT NULL UNIQUE,
   `nutriscore` int(11) DEFAULT NULL,
   `url` varchar(500) DEFAULT NULL,
-  PRIMARY KEY (`product_id`)
+  PRIMARY KEY (`id_product`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `category` ;
 CREATE TABLE IF NOT EXISTS `category` (
-  `category_id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_category` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(250) DEFAULT NULL UNIQUE,
-  PRIMARY KEY (`category_id`)
+  PRIMARY KEY (`id_category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `store` ;
 CREATE TABLE IF NOT EXISTS `store` (
-  `store_id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_store` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(250) DEFAULT NULL UNIQUE,
-  PRIMARY KEY (`store_id`)
+  PRIMARY KEY (`id_store`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `category_product` ;
 CREATE TABLE IF NOT EXISTS `category_product` (
-  `category_id` int(11) NOT NULL,
-  `product_id` int(11) NOT NULL,
-  PRIMARY KEY (`category_id`, `product_id`),
-  KEY `fk_category_product_category_idx` (`category_id`),
-  KEY `fk_category_product_product_idx` (`product_id`),
-  CONSTRAINT `fk_category_product_category` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`),
-  CONSTRAINT `fk_category_product_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`product_id`)
+  `id_category` int(11) NOT NULL,
+  `id_product` int(11) NOT NULL,
+  PRIMARY KEY (`id_category`, `id_product`),
+  KEY `fk_category_product_category_idx` (`id_category`),
+  KEY `fk_category_product_product_idx` (`id_product`),
+  CONSTRAINT `fk_category_product_category` FOREIGN KEY (`id_category`) REFERENCES `category` (`id_category`),
+  CONSTRAINT `fk_category_product_product` FOREIGN KEY (`id_product`) REFERENCES `product` (`id_product`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `store_product` ;
 CREATE TABLE IF NOT EXISTS `store_product` (
-  `store_id` int(11) NOT NULL,
-  `product_id` int(11) NOT NULL,
-  PRIMARY KEY (`store_id`, `product_id`),
-  KEY `fk_store_product_store_idx` (`store_id`),
-  KEY `fk_store_product_product_idx` (`product_id`),
-  CONSTRAINT `fk_store_product_store` FOREIGN KEY (`store_id`) REFERENCES `store` (`store_id`),
-  CONSTRAINT `fk_store_product_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`product_id`)
+  `id_store` int(11) NOT NULL,
+  `id_product` int(11) NOT NULL,
+  PRIMARY KEY (`id_store`, `id_product`),
+  KEY `fk_store_product_store_idx` (`id_store`),
+  KEY `fk_store_product_product_idx` (`id_product`),
+  CONSTRAINT `fk_store_product_store` FOREIGN KEY (`id_store`) REFERENCES `store` (`id_store`),
+  CONSTRAINT `fk_store_product_product` FOREIGN KEY (`id_product`) REFERENCES `product` (`id_product`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 DROP TABLE IF EXISTS `favorite_product` ;
 CREATE TABLE IF NOT EXISTS `favorite_product` (
-  `base_product_id` int(11) NOT NULL,
-  `substitute_product_id` int(11) NOT NULL,
-  PRIMARY KEY (`base_product_id`,`substitute_product_id`),
-  KEY `fk_favorite_product1_idx` (`base_product_id`),
-  KEY `fk_favorite_product2_idx` (`substitute_product_id`),
-  CONSTRAINT `fk_favorite_product1` FOREIGN KEY (`base_product_id`) REFERENCES `product` (`product_id`),
-  CONSTRAINT `fk_favorite_product2` FOREIGN KEY (`substitute_product_id`) REFERENCES `product` (`product_id`)
+  `id_base_product` int(11) NOT NULL,
+  `id_substitute_product` int(11) NOT NULL,
+  PRIMARY KEY (`id_base_product`,`id_substitute_product`),
+  KEY `fk_favorite_product1_idx` (`id_base_product`),
+  KEY `fk_favorite_product2_idx` (`id_substitute_product`),
+  CONSTRAINT `fk_favorite_product1` FOREIGN KEY (`id_base_product`) REFERENCES `product` (`id_product`),
+  CONSTRAINT `fk_favorite_product2` FOREIGN KEY (`id_substitute_product`) REFERENCES `product` (`id_product`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

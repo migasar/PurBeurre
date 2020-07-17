@@ -36,20 +36,23 @@ class Borg:
 class DBManager(Borg):
     """Create the database or initiate its connection, if it already exists."""
 
-    def __init__(self,
-                 host_name=credential.DB_HOST,
-                 user_name=credential.DB_USER,
-                 user_password=credential.DB_PASSWORD,
-                 db_name=None
-                 ):
+    def __init__(self, host_name=None, user_name=None, user_password=None, db_name=None):
 
         # ensure that only one instance of 'DBManager' is at play
         Borg.__init__(self)
 
+        # default values for the parameters of the connection
+        if host_name is None:
+            host_name = credential.DB_HOST
+        if user_name is None:
+            user_name = credential.DB_USER
+        if user_password is None:
+            user_password = credential.DB_PASSWORD
+
         # parameters of the connection
-        self.host_name = host_name
-        self.user_name = user_name
-        self.user_password = user_password
+        self.host_name = host_name  # if host_name is not None else credential.DB_HOST
+        self.user_name = user_name  # if user_name is not None else credential.DB_USER
+        self.user_password = user_password  # if user_password is not None else credential.DB_PASSWORD
         self.db_name = db_name
 
         # initiate a connection to the server

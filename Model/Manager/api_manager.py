@@ -19,10 +19,14 @@ class APIManager:
     - Create 'responses': a list of objects of class Response (from package requests).
     """
 
-    def __init__(self, url=constant.OFF_URL, page_size=5, page_number=5):
-        self.url = url
-        self.page_size = page_size
-        self.page_number = page_number
+    def __init__(self, url=None, page_size=None, page_number=None):
+
+        # parameters of the call to the API (with default values as fallback)
+        self.url = url if url is not None else constant.OFF_URL
+        self.page_size = page_size if page_size is not None else 2
+        self.page_number = page_number if page_number is not None else 1
+
+        # repository of the result from the call to the API
         self.products = []
 
     def get_data(self):
@@ -32,18 +36,14 @@ class APIManager:
         Return a list of objects of class Product contained in 'self.products'.
         """
 
+        # set the parameters that are constant for the API
         parameters = constant.API_PARAMETERS.copy()
+        parameters.update({'page_size': self.page_size})
 
         # use 'page_number' to fractionate the call to the api in different requests to cap the load
-        for page_number in range(1, self.page_number + 1):
-
+        for page in range(1, self.page_number + 1):
             # iterate on the method, by modifying the parameter 'page_number'
-            pages = {
-                    'page_size': self.page_size,
-                    'page_number': page_number
-            }
-            parameters.update(pages)
-
+            parameters.update({'page_number': page})
             # execute the request
             answer = requests.get(self.url, params=parameters)
             # call the method to extract the data

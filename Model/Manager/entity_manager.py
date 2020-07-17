@@ -28,36 +28,25 @@ class EntityManager:
         self.connection = db.connection
         self.cursor = db.cursor
 
-    def insert_all(self, payload):
-        """Insert multiple rows in a table.
+    def unpack_listing(self, listing, components=None):
+        """Serialize a nested list (of an unknown depth).
 
-        The method 'insert_all' orchestrates the call to the methods
-        to create a query to insert a row in the db for each instance in 'payload.'
-
-        The result will be a list of queries which will be coerced in a long string,
-        and then send to the db.
+        It returns a flattened list with the same elements (they are all brought at the same level).
         """
 
-        # repository for the formatted queries
-        queries = []
-        # create a query for each instance of the list
-        for instance in payload:
-            queries.append(self.create_query(instance))
+        if components is None:
+            atoms = []
+        else:
+            atoms = components
 
-        # unpack the nested lists
-        request = self.unpack_listing(queries)
-        # reverse back the order of the stack of queries
-        request.reverse()
+        for element in listing:
+            # if the function encounters another level, it launch a recursive call to bring its elements forward
+            if type(element) is list:
+                self.unpack_listing(element, atoms)
+            else:
+                atoms.append(element)
 
-        # try to execute every query in one command to the db
-        try:
-            # join together the elements of the list of queries, as one unique long string
-            statement = str('; '.join(request))
-            # yield each statement in the generator expression (created with parameter 'multi=True')
-            for _ in (self.db.cursor.execute(statement, multi=True)):
-                continue
-        except Error as e:
-            print(f"The error '{e}' occurred")
+        return atoms
 
     def create_query(self, instance, parent=None):
         """Create a string used as a query, from a formatted string and the variables used as parameters."""
@@ -69,7 +58,7 @@ class EntityManager:
         table_name = instance.__class__.__name__.lower()
         row_keys = []
         row_values = []
-        
+
         # unpack the attributes of the instance
         for attribute_key, attribute_value in instance.__dict__.items():
             if attribute_value is None:
@@ -82,7 +71,7 @@ class EntityManager:
                 # collect the variables needed to create a row of data
                 row_keys.append(attribute_key)
                 row_values.append(attribute_value)
-    
+
         # format the parameters
         if (len(row_keys) or len(row_values)) == 1:
             single_row_key = str("'" + str(row_keys[0]) + "'")
@@ -99,18 +88,18 @@ class EntityManager:
                 f" {row_keys}"
                 f" VALUES {row_values} "
                 f"ON DUPLICATE KEY UPDATE"
-                f" {table_name}_id=LAST_INSERT_ID({table_name}_id); "
-                f"SET @{table_name}_id = LAST_INSERT_ID()"
+                f" id_{table_name} = LAST_INSERT_ID(id_{table_name}); "
+                f"SET @id_{table_name} = LAST_INSERT_ID()"
         )
-        
-        # depending of the instance, modify the query to add a request for the tables of associations  
+
+        # depending of the instance, modify the query to add a request for the tables of associations
         if parent is not None:
             parent_name = parent.__class__.__name__.lower()
             query_tail = (
                     f"; "
                     f"INSERT IGNORE INTO {table_name}_{parent_name}"
-                    f" ({table_name}_id, {parent_name}_id)"
-                    f" VALUES (@{table_name}_id, @{parent_name}_id)"
+                    f" (id_{table_name}, id_{parent_name})"
+                    f" VALUES (@id_{table_name}, @id_{parent_name})"
             )
             query += query_tail
 
@@ -119,62 +108,90 @@ class EntityManager:
 
         return children
 
-    def unpack_listing(self, payload, components=None):
-        """Serialize a nested list (of an unknown depth).
-        
-        It returns a flattened list with the same elements (they are all brought at the same level). 
+    def insert_all(self, payload):
+        """Insert rows in a table.
+
+        The method 'insert_all' orchestrates the call to the methods
+        to create a query to insert a row in the db for each instance in 'payload.'
+
+        The result will be a list of queries which will be coerced in a long string,
+        and then send to the db.
         """
-        
-        if components is None:
-            atoms = []
+
+        # repository for the formatted queries
+        queries = []
+
+        # create queries from the objects in payload
+        if type(payload) is list:
+            # create a query for each instance of the list
+            for instance in payload:
+                queries.append(self.create_query(instance))
         else:
-            atoms = components
+            # in case payload is a single instance
+            queries.append(self.create_query(payload))
 
-        for element in payload:
-            # if the function encounters another level, it launch a recursive call to bring its elements forward
-            if type(element) is list:
-                self.unpack_listing(element, atoms)
-            else:
-                atoms.append(element)
-                
-        return atoms
+        # unpack the nested lists
+        request = self.unpack_listing(queries)
+        # reverse back the order of the stack of queries
+        request.reverse()
 
-    def insert_one(self, instance):
-        """Insert one row in a table."""
-
-        # parameters of the query
-        table_name = instance.__class__.__name__.lower()
-        table_headers = str(instance.get_headers()).replace("'", "")
-        headers_count = f"({', '.join(['%s'] * len(instance.get_headers()))})"
-
-        # skeleton of the query
-        query = (
-                f"INSERT INTO {table_name} "
-                f"{table_headers} "
-                f"VALUES {headers_count}"
-        )
-
-        # create an empty list ('record') that will contain the elements of one row
-        record = []
-        # fetch the values of the instance
-        for val in instance.get_values():
-            # if the value is a list, we assume that it is a list of instances of another entity
-            if type(val) is list:
-                continue
-            # if the value is an int, take the value as it is
-            elif type(val) is int:
-                record.append(val)
-            # otherwise, take the value as a string (if it is neither a list or an int)
-            else:
-                record.append(str(val))
-
-        # format a row of the instance
-        row = str(tuple(record)).replace("'", "")
-
-        # try to execute the query
+        # try to execute every query in one command to the db
         try:
-            self.db.cursor.execute(query, row)
-            self.db.connection.commit()
+            # join together the elements of the list of queries, as one unique long string
+            statement = str('; '.join(request))
+            # yield each statement in the generator expression (created with parameter 'multi=True')
+            for _ in (self.db.cursor.execute(statement, multi=True)):
+                continue
 
         except Error as e:
             print(f"The error '{e}' occurred")
+
+    def read_row(self, instance):
+
+        # set the parameters
+        table_name = instance.__class__.__name__.lower()
+        instance_name = str(instance.name).replace("'", "")
+
+        # format the query
+        query = (
+                f"SELECT * FROM {table_name} "
+                f"WHERE name = {instance_name}; "
+        )
+
+        # execute the query
+        try:
+            self.db.cursor.execute(query)
+            # TEST
+            records = self.db.cursor.fetchall()
+            print("Instance: ")
+            for record in records:
+                print(record)
+        except Error as e:
+            print(f"The error '{e}' occurred")
+
+    def read_selection(self, id_prod):
+        """draft of the method to solve the main request of the program"""
+
+        query = (
+                f"SELECT * FROM product "
+                f"WHERE id_product IN ("
+                f"    SELECT id_product FROM category_product "
+                f"    WHERE id_category IN ("
+                f"        SELECT id_category FROM category_product "
+                f"        WHERE id_product = {id_prod} "
+                f"    )"
+                f")"
+                f"ORDER BY nutriscore "
+                f";"
+        )
+
+        try:
+            self.db.cursor.execute(query)
+            # TEST
+            records = self.db.cursor.fetchall()
+            print("PRODUCTS: ")
+            for record in records:
+                print(record)
+        except Error as e:
+            print(f"The error '{e}' occurred")
+
