@@ -4,11 +4,11 @@
 class Category:
     """Create an object describing one category"""
 
-    def __init__(self, name, products=None, category_id=None):
+    def __init__(self, name, products=None, id_category=None):
 
         self.name = name
         self.products = products
-        self.category_id = category_id
+        self.id_category = id_category
 
     def __repr__(self):
         """Create a more usable representation of the object.

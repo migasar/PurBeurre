@@ -4,11 +4,11 @@
 class Store:
     """Create an object describing one store"""
 
-    def __init__(self, name, products=None, store_id=None):
+    def __init__(self, name, products=None, id_store=None):
 
         self.name = name
         self.products = products
-        self.store_id = store_id
+        self.id_store = id_store
 
     def __repr__(self):
         """Create a more usable representation of the object.

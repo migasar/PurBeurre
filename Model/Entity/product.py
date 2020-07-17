@@ -7,14 +7,14 @@ from Model.Entity.store import Store
 class Product:
     """Create an object describing one product."""
 
-    def __init__(self, name, nutriscore, url, categories=None, stores=None, product_id=None):
+    def __init__(self, name, nutriscore, url, categories=None, stores=None, id_product=None):
 
         self.name = name
         self.nutriscore = nutriscore
         self.url = url
         self.categories = self.set_categories(categories)
         self.stores = self.set_stores(stores)
-        self.product_id = product_id
+        self.id_product = id_product
 
     def __repr__(self):
         """Create a more usable representation of the object.
