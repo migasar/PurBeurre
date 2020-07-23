@@ -1,5 +1,7 @@
 """ Create an object 'Store' to carry the data of the stores. """
 
+from Model.Entity.product import Product
+
 from Model.Manager.entity_manager import EntityManager
 
 
@@ -59,30 +61,35 @@ class Store:
                     **components
             )
 
-            prod_anchor = 'store'
-            prod_selection = 'store.id_store, store.name'
-            # Retrieve the attributes of each store from its id
-            for prod in production:
-                prod_components = {
-                        'where': {
-                                'table_adjunct': 'product',
-                                'row_key': 'id_store',
-                                'row_value': prod
-                        }
-                }
+            for prod_row in production:
+                for prod_id in prod_row:
+                    if type(prod_id) is int:
+                        self.products.append(Product.from_db(id_product=prod_id))
 
-                # Send the query
-                prod_row = self.entity_manager.read_row(
-                        table_anchor=prod_anchor, selection=prod_selection, **prod_components
-                )
-                for prow in prod_row:
-                    # Create an instance with the result of the query
-                    prod_instance = Store(
-                            id_store=int(prow[0]),
-                            name=str(prow[1])
-                    )
-                    # Add the instance to the list of categories related to this product
-                    self.products.append(prod_instance)
+            # prod_anchor = 'store'
+            # prod_selection = 'store.id_store, store.name'
+            # # Retrieve the attributes of each store from its id
+            # for prod in production:
+            #     prod_components = {
+            #             'where': {
+            #                     'table_adjunct': 'product',
+            #                     'row_key': 'id_store',
+            #                     'row_value': prod
+            #             }
+            #     }
+            #
+            #     # Send the query
+            #     prod_row = self.entity_manager.read_row(
+            #             table_anchor=prod_anchor, selection=prod_selection, **prod_components
+            #     )
+            #     for prow in prod_row:
+            #         # Create an instance with the result of the query
+            #         prod_instance = Store(
+            #                 id_store=int(prow[0]),
+            #                 name=str(prow[1])
+            #         )
+            #         # Add the instance to the list of categories related to this product
+            #         self.products.append(prod_instance)
 
         return self.products
 

@@ -30,7 +30,7 @@ class Category:
         ]
 
         return (f"{self.__class__.__name__}"
-                f"({', '. join([v for v in values_list])})")
+                f"({', '.join([v for v in values_list])})")
 
     def get_products(self):
 
@@ -61,13 +61,10 @@ class Category:
                     **components
             )
 
-            print()
-            print(f"Production: {production}")
-            print()
-
             for prod_row in production:
-
-                print(f"PROD: {prod_row}")
+                for prod_id in prod_row:
+                    if type(prod_id) is int:
+                        self.products.append(Product.from_db(id_product=prod_id))
 
                 ## Retrieve the attributes of each category from its id
                 # prod_anchor = 'category'
@@ -84,22 +81,18 @@ class Category:
                 #         table_anchor=prod_anchor, selection=prod_selection, **prod_components
                 # )
 
-                for prod_id in prod_row:
+                # for prod_id in prod_row:
+                #
+                #     if type(prod_id) is int:
+                #         self.products.append(Product.from_db(id_product=prod_id))
 
-                    if type(prod_id) is int:
-
-                        print(f"prod_id: {prod_id}")
-                        self.products.append(Product.from_db(id_product=prod_id))
-
-                    # # Create an instance with the result of the query
-                    # prod_instance = Category(
-                    #         id_category=int(prow[0]),
-                    #         name=str(prow[1])
-                    # )
-                    # # Add the instance to the list of categories related to this product
-                    # self.products.append(prod_instance)
-
-            print(f"PROCAT: {self.products}")
+                # # Create an instance with the result of the query
+                # prod_instance = Category(
+                #         id_category=int(prow[0]),
+                #         name=str(prow[1])
+                # )
+                # # Add the instance to the list of categories related to this product
+                # self.products.append(prod_instance)
 
         return self.products
 
