@@ -29,7 +29,7 @@ class APIManager:
         # repository of the result from the call to the API
         self.products = []
 
-    def get_data(self):
+    def get_load(self):
         """Make a get request to the API (one page at a time), and fetch specific data.
 
         From objects of class Response (of package requests), extract the data we need on each product.
@@ -63,11 +63,10 @@ class APIManager:
 
             # use if/else as a filter, to keep products with categories in french
             if outline['categories_lc'] == 'fr':
-
                 # use try/except as a filter, to discard instances of 'Product' with missing values
                 try:
                     # try to create an instance of class 'Product' with required values
-                    product = Product(
+                    product = Product.from_api(
                             name=outline['product_name_fr'],
                             nutriscore=outline['nutriscore_score'],
                             url=outline['url'],
@@ -77,11 +76,9 @@ class APIManager:
                     # discard this instance and jump to the next, if a value is empty
                     if any(product.get_values()) == "":
                         raise KeyError
-
                 # discard this instance and jump to the next, if a value is missing
                 except KeyError:
                     continue
-
                 # finally if no exception is raised, this instance is added to the list
                 else:
                     self.products.append(product)
@@ -92,12 +89,12 @@ class APIManager:
 
         return self.products
 
-    def download_data(self, entity=EntityManager()):
+    def download_data(self, entity_manager=EntityManager()):
         """Call an entity manager to use its method to insert a load of data in the DB."""
 
-        # call the method 'get_data()' if it has not been done yet
+        # call the method 'get_load()' if it has not been done yet
         if len(self.products) == 0:
-            self.get_data()
+            self.get_load()
 
         # call the method 'insert_all' from entity_manager to save the data in the database
-        return entity.insert_all(self.products)
+        return entity_manager.insert_all(self.products)

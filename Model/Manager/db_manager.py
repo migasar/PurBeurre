@@ -65,23 +65,17 @@ class DBManager(Borg):
         If db_name is specified, create a connection specifically to a database.
         """
 
-        # create a general connection to MySQL server
-        if self.db_name is None:
-            try:
+        try:
+            # create a general connection to MySQL server
+            if self.db_name is None:
                 self.connection = mysql.connect(
                         host=self.host_name,
                         user=self.user_name,
                         passwd=self.user_password
                 )
 
-            except Error as e:
-                print(f"The error'{e}' occured")
-
-            return self.connection
-
-        # create a connection specifically to a database
-        else:
-            try:
+            # create a connection specifically to a database
+            else:
                 self.connection = mysql.connect(
                         host=self.host_name,
                         user=self.user_name,
@@ -89,10 +83,10 @@ class DBManager(Borg):
                         database=self.db_name
                 )
 
-            except Error as e:
-                print(f"The error'{e}' occured")
+        except Error as e:
+            print(f"The error'{e}' occured")
 
-            return self.connection
+        return self.connection
 
     def build_database(self, filepath=constant.SCHEMA_PATH):
         """Initiate the creation of the database.

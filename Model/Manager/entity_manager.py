@@ -10,10 +10,6 @@ It contains the methods CRUD of the program:
 
 from mysql.connector import Error
 
-from Model.Entity.product import Product
-from Model.Entity.category import Category
-from Model.Entity.store import Store
-
 from Model.Manager.db_manager import DBManager
 
 
@@ -34,10 +30,7 @@ class EntityManager:
         It returns a flattened list with the same elements (they are all brought at the same level).
         """
 
-        if components is None:
-            atoms = []
-        else:
-            atoms = components
+        atoms = [] if components is None else components
 
         for element in listing:
             # if the function encounters another level, it launch a recursive call to bring its elements forward
@@ -48,25 +41,27 @@ class EntityManager:
 
         return atoms
 
-    def create_query(self, instance, parent=None):
+    def create_query(self, entity, parent=None):
         """Create a string used as a query, from a formatted string and the variables used as parameters."""
 
         # repository for the formatted queries
         children = []
 
         # set the parameters
-        table_name = instance.__class__.__name__.lower()
+        table_name = entity.__class__.__name__.lower()
         row_keys = []
         row_values = []
 
-        # unpack the attributes of the instance
-        for attribute_key, attribute_value in instance.__dict__.items():
+        # unpack the attributes of the entity
+        for item in entity.get_items():
+            attribute_key = item[0]
+            attribute_value = item[1]
             if attribute_value is None:
                 pass
             elif type(attribute_value) is list:
                 # launch a recursive call if the attribute is a repository of other instances
                 for child in attribute_value:
-                    children.append(self.create_query(child, instance))
+                    children.append(self.create_query(child, entity))
             else:
                 # collect the variables needed to create a row of data
                 row_keys.append(attribute_key)
@@ -84,12 +79,12 @@ class EntityManager:
 
         # format the query
         query = (
-                f"INSERT INTO {table_name}"
-                f" {row_keys}"
-                f" VALUES {row_values} "
-                f"ON DUPLICATE KEY UPDATE"
-                f" id_{table_name} = LAST_INSERT_ID(id_{table_name}); "
-                f"SET @id_{table_name} = LAST_INSERT_ID()"
+                f"INSERT INTO {table_name} "
+                f"  {row_keys} "
+                f"  VALUES {row_values} "
+                f"ON DUPLICATE KEY UPDATE "
+                f"  id_{table_name} = LAST_INSERT_ID(id_{table_name}); "
+                f"SET @id_{table_name} = LAST_INSERT_ID() "
         )
 
         # depending of the instance, modify the query to add a request for the tables of associations
@@ -97,9 +92,9 @@ class EntityManager:
             parent_name = parent.__class__.__name__.lower()
             query_tail = (
                     f"; "
-                    f"INSERT IGNORE INTO {table_name}_{parent_name}"
-                    f" (id_{table_name}, id_{parent_name})"
-                    f" VALUES (@id_{table_name}, @id_{parent_name})"
+                    f"INSERT IGNORE INTO {table_name}_{parent_name} "
+                    f"  (id_{table_name}, id_{parent_name}) "
+                    f"  VALUES (@id_{table_name}, @id_{parent_name}) "
             )
             query += query_tail
 
@@ -146,26 +141,52 @@ class EntityManager:
         except Error as e:
             print(f"The error '{e}' occurred")
 
-    def read_row(self, instance):
+    def read_row(self, table_anchor, selection='*', distinct=True, **claims):
 
-        # set the parameters
-        table_name = instance.__class__.__name__.lower()
-        instance_name = str(instance.name).replace("'", "")
+        # Query
+        claim = []
 
-        # format the query
-        query = (
-                f"SELECT * FROM {table_name} "
-                f"WHERE name = {instance_name}; "
-        )
+        # SELECT
+        claim_select = f"SELECT DISTINCT " if distinct is True else f"SELECT "
+        claim_select += f"{selection}  "
+        claim.append(claim_select)
+
+        # FROM
+        claim_from = f"FROM {table_anchor} "
+        claim.append(claim_from)
+
+        # JOIN
+        if 'join' in claims:
+            claim_join = (
+                    f"INNER JOIN {claims['join']['table_adjunct']} "
+                    f"ON {claims['join']['table_adjunct']}.{claims['join']['row_key']} "
+                    f"= {table_anchor}.{claims['join']['row_key']} "
+            )
+            claim.append(claim_join)
+        # WHERE
+        if 'where' in claims:
+            claim_where = (
+                    f"WHERE {claims['where']['table_adjunct']}.{claims['where']['row_key']} "
+                    f"= {claims['where']['row_value']} "
+            )
+            claim.append(claim_where)
+        # ORDER
+        if 'order' in claims:
+            claim_order = f"ORDER BY {claims['order']} "
+            claim.append(claim_order)
+
+        # Punctuation
+        claim_tail = ";"
+        claim.append(claim_tail)
+
+        # Format the query
+        statement = str(' '.join(claim))
 
         # execute the query
         try:
-            self.db.cursor.execute(query)
-            # TEST
+            self.db.cursor.execute(statement)
             records = self.db.cursor.fetchall()
-            print("Instance: ")
-            for record in records:
-                print(record)
+            return [record for record in records]
         except Error as e:
             print(f"The error '{e}' occurred")
 
@@ -174,24 +195,18 @@ class EntityManager:
 
         query = (
                 f"SELECT * FROM product "
-                f"WHERE id_product IN ("
-                f"    SELECT id_product FROM category_product "
-                f"    WHERE id_category IN ("
-                f"        SELECT id_category FROM category_product "
-                f"        WHERE id_product = {id_prod} "
-                f"    )"
-                f")"
+                f"WHERE id_product IN ( "
+                f"  SELECT id_product FROM category_product "
+                f"  WHERE id_category IN ( "
+                f"    SELECT id_category FROM category_product "
+                f"    WHERE id_product = {id_prod} "
+                f"  ) "
+                f") "
                 f"ORDER BY nutriscore "
                 f";"
         )
 
         try:
             self.db.cursor.execute(query)
-            # TEST
-            records = self.db.cursor.fetchall()
-            print("PRODUCTS: ")
-            for record in records:
-                print(record)
         except Error as e:
             print(f"The error '{e}' occurred")
-

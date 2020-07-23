@@ -37,7 +37,7 @@ def main():
         # CREATE API
 
         api_caller = APIManager()
-        api_caller.get_data()
+        api_caller.get_load()
         print("API called !")
 
         return api_caller
