@@ -2,7 +2,6 @@
 
 from Model.Entity.category import Category
 from Model.Entity.store import Store
-
 from Model.Manager.entity_manager import EntityManager
 
 
@@ -61,9 +60,11 @@ class Product:
                             'row_value': id_product
                     }
             }
-            result = cls.entity_manager.read_row(
+            results = cls.entity_manager.read_row(
                     table_anchor=anchor, selection=selection, **components
             )
+            result = results[0]
+
             instance = cls(
                     id_product=result[0],
                     name=result[1],
@@ -79,6 +80,84 @@ class Product:
         instance.stores = instance.get_stores()
 
         return instance
+
+    @staticmethod
+    def set_categories(categories, product=None):
+        """Modify the initiation of the attribute depending on its source.
+
+        Create a list of instances of 'Category' from a long string,
+        or retrieve a list of instances if they have already been initiated.
+        """
+
+        # test if the variable is empty
+        if len(categories) == 0:
+            raise KeyError
+
+        # test if the content of the variable is not yet an instance
+        elif type(categories) is str:
+            # create a list of instances
+            cats = []
+            for cat in categories.split(','):
+                # use try/except as a filter, to discard instances of 'Category' with missing values
+                try:
+                    # try to create an instance of class 'Category' with required values
+                    category = Category(
+                            name=str(cat).strip(),
+                            products=product
+                    )
+                    # discard this instance and jump to the next, if a value is empty
+                    if category.name == "":
+                        raise KeyError
+                # discard this instance and jump to the next, if a value is missing
+                except KeyError:
+                    continue
+                # finally if no exception is raised, this instance is added to the list
+                else:
+                    cats.append(category)
+            return cats
+
+        # assume that the instances have been initiated
+        else:
+            return categories
+
+    @staticmethod
+    def set_stores(stores, product=None):
+        """Modify the initiation of the attribute depending on its source.
+
+        Create a list of instances of 'Store' from a long string,
+        or retrieve a list of instances if they have already been initiated.
+        """
+
+        # test if the variable is empty
+        if len(stores) == 0:
+            raise KeyError
+
+        # test if the content of the variable is not yet an instance
+        elif type(stores) is str:
+            # create a list of instances
+            shops = []
+            for shop in stores.split(','):
+                # use try/except as a filter, to discard instances of 'Store' with missing values
+                try:
+                    # try to create an instance of class 'Store' with required values
+                    store = Store(
+                            name=str(shop).strip(),
+                            products=product
+                    )
+                    # discard this instance and jump to the next, if a value is empty
+                    if store.name == "":
+                        raise KeyError
+                # discard this instance and jump to the next, if a value is missing
+                except KeyError:
+                    continue
+                # finally if no exception is raised, this instance is added to the list
+                else:
+                    shops.append(store)
+            return shops
+
+        else:
+            # assume that the instances have been initiated
+            return stores
 
     def get_categories(self):
 
@@ -193,93 +272,15 @@ class Product:
 
         return self.stores
 
-    @staticmethod
-    def set_categories(categories, product=None):
-        """Modify the initiation of the attribute depending on its source.
-
-        Create a list of instances of 'Category' from a long string,
-        or retrieve a list of instances if they have already been initiated.
-        """
-
-        # test if the variable is empty
-        if len(categories) == 0:
-            raise KeyError
-
-        # test if the content of the variable is not yet an instance
-        elif type(categories) is str:
-            # create a list of instances
-            cats = []
-            for cat in categories.split(','):
-                # use try/except as a filter, to discard instances of 'Category' with missing values
-                try:
-                    # try to create an instance of class 'Category' with required values
-                    category = Category(
-                            name=str(cat).strip(),
-                            products=product
-                    )
-                    # discard this instance and jump to the next, if a value is empty
-                    if category.name == "":
-                        raise KeyError
-                # discard this instance and jump to the next, if a value is missing
-                except KeyError:
-                    continue
-                # finally if no exception is raised, this instance is added to the list
-                else:
-                    cats.append(category)
-            return cats
-
-        # assume that the instances have been initiated
-        else:
-            return categories
-
-    @staticmethod
-    def set_stores(stores, product=None):
-        """Modify the initiation of the attribute depending on its source.
-
-        Create a list of instances of 'Store' from a long string,
-        or retrieve a list of instances if they have already been initiated.
-        """
-
-        # test if the variable is empty
-        if len(stores) == 0:
-            raise KeyError
-
-        # test if the content of the variable is not yet an instance
-        elif type(stores) is str:
-            # create a list of instances
-            shops = []
-            for shop in stores.split(','):
-                # use try/except as a filter, to discard instances of 'Store' with missing values
-                try:
-                    # try to create an instance of class 'Store' with required values
-                    store = Store(
-                            name=str(shop).strip(),
-                            products=product
-                    )
-                    # discard this instance and jump to the next, if a value is empty
-                    if store.name == "":
-                        raise KeyError
-                # discard this instance and jump to the next, if a value is missing
-                except KeyError:
-                    continue
-                # finally if no exception is raised, this instance is added to the list
-                else:
-                    shops.append(store)
-            return shops
-
-        else:
-            # assume that the instances have been initiated
-            return stores
-
-    def get_headers(self):
-        """Create a list with the name of attributes (which are not empty).
-
-        It will be used as a parameter in the creation of queries (as a string of column names)."""
+    def get_items(self):
+        """Create a list of tuples with the name and the value of each attribute (which are not empty)."""
 
         return [
-                k
+                (k, v)
+                if type(v) is not list
+                else (k, [x for x in v])
                 for (k, v) in self.__dict__.items()
-                if type(v) is not list and v is not None and k != 'entity_manager'
+                if v is not None and k != 'entity_manager'
         ]
 
     def get_values(self):
@@ -297,13 +298,13 @@ class Product:
                 if v is not None and k != 'entity_manager'
         ]
 
-    def get_items(self):
-        """Create a list of tuples with the name and the value of each attribute (which are not empty)."""
+    def get_headers(self):
+        """Create a list with the name of attributes (which are not empty).
+
+        It will be used as a parameter in the creation of queries (as a string of column names)."""
 
         return [
-                (k, v)
-                if type(v) is not list
-                else (k, [x for x in v])
+                k
                 for (k, v) in self.__dict__.items()
-                if v is not None and k != 'entity_manager'
+                if type(v) is not list and v is not None and k != 'entity_manager'
         ]

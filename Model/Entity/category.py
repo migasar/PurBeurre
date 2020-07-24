@@ -1,7 +1,6 @@
 """ Create an object 'Category' to carry the data of the categories. """
 
-from Model.Entity.product import Product
-
+# from Model.Entity.product import Product
 from Model.Manager.entity_manager import EntityManager
 
 
@@ -13,9 +12,9 @@ class Category:
 
     def __init__(self, name, products=None, id_category=None):
 
+        self.id_category = id_category
         self.name = name
         self.products = products
-        self.id_category = id_category
 
     def __repr__(self):
         """Create a more usable representation of the object.
@@ -37,7 +36,7 @@ class Category:
         if self.products is None:
 
             # Create an empty list in categories
-            self.products = []
+            production_set = set()
 
             # Components of the query to retrieve the ids of the products, from the category
             anchor = 'product'
@@ -61,11 +60,9 @@ class Category:
                     **components
             )
 
-            for prod_row in production:
-                for prod_id in prod_row:
-                    if type(prod_id) is int:
-                        self.products.append(Product.from_db(id_product=prod_id))
-
+            for prod in production:
+                production_set.add(prod)
+                # self.products.append(Product.from_db(id_product=prod_id))
                 ## Retrieve the attributes of each category from its id
                 # prod_anchor = 'category'
                 # prod_selection = 'category.id_category, category.name'
@@ -80,7 +77,6 @@ class Category:
                 # prod_row = self.entity_manager.read_row(
                 #         table_anchor=prod_anchor, selection=prod_selection, **prod_components
                 # )
-
                 # for prod_id in prod_row:
                 #
                 #     if type(prod_id) is int:
@@ -94,17 +90,21 @@ class Category:
                 # # Add the instance to the list of categories related to this product
                 # self.products.append(prod_instance)
 
-        return self.products
+            self.products = sorted(production_set)
+            return self.products
 
-    def get_headers(self):
-        """Create a list with the name of attributes (which are not empty).
+        else:
+            return self.products
 
-        It will be used as a parameter in the creation of queries (as a string of column names)."""
+    def get_items(self):
+        """Create a list of tuples with the name and the value of each attribute (which are not empty)."""
 
         return [
-                k
+                (k, v)
+                if type(v) is not list
+                else (k, [x for x in v])
                 for (k, v) in self.__dict__.items()
-                if type(v) is not list and v is not None and k != 'entity_manager'
+                if v is not None and k != 'entity_manager'
         ]
 
     def get_values(self):
@@ -122,13 +122,13 @@ class Category:
                 if v is not None and k != 'entity_manager'
         ]
 
-    def get_items(self):
-        """Create a list of tuples with the name and the value of each attribute (which are not empty)."""
+    def get_headers(self):
+        """Create a list with the name of attributes (which are not empty).
+
+        It will be used as a parameter in the creation of queries (as a string of column names)."""
 
         return [
-                (k, v)
-                if type(v) is not list
-                else (k, [x for x in v])
+                k
                 for (k, v) in self.__dict__.items()
-                if v is not None and k != 'entity_manager'
+                if type(v) is not list and v is not None and k != 'entity_manager'
         ]

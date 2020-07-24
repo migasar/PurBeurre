@@ -74,7 +74,8 @@ class APIManager:
                             stores=outline['stores']
                     )
                     # discard this instance and jump to the next, if a value is empty
-                    if any(product.get_values()) == "":
+                    # if any(product.get_values()) == "":
+                    if any(v for (k, v) in product.get_items()) == "":
                         raise KeyError
                 # discard this instance and jump to the next, if a value is missing
                 except KeyError:
