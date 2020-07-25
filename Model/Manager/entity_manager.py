@@ -10,6 +10,9 @@ It contains the methods CRUD of the program:
 
 from mysql.connector import Error
 
+from Model.Entity.product import Product
+from Model.Entity.category import Category
+from Model.Entity.store import Store
 from Model.Manager.db_manager import DBManager
 
 
@@ -18,6 +21,13 @@ class EntityManager:
 
     The variable database is an instance of the class DBManager.
     """
+
+    # Class variable:
+    register = {
+            'product': Product,
+            'category': Category,
+            'store': Store
+    }
 
     def __init__(self, db=DBManager()):
         self.db = db
@@ -103,6 +113,49 @@ class EntityManager:
 
         return children
 
+    def create_instance(self, entity, **attributes):
+
+        if entity == 'product':
+
+            for key, value in attributes.items():
+
+                if key == 'categories':
+                    if type(value) is str:
+                        categories = []
+                        for cat in value.split(','):
+                            try:
+                                category = Category(
+                                        name=str(cat).strip()
+                                )
+                                if category.name == "":
+                                    raise KeyError
+                            except KeyError:
+                                continue
+                            else:
+                                categories.append(category)
+                        attributes[key] = categories
+
+                elif key == 'stores':
+                    if type(value) is str:
+                        stores = []
+                        for shop in value.split(','):
+                            try:
+                                store = Store(
+                                        name=str(shop).strip()
+                                )
+                                if store.name == "":
+                                    raise KeyError
+                            except KeyError:
+                                continue
+                            else:
+                                stores.append(store)
+                        attributes[key] = stores
+
+            return Product(**attributes)
+
+        else:
+            return self.register[entity](**attributes)
+
     def insert_all(self, payload):
         """Insert rows in a table.
 
@@ -148,8 +201,15 @@ class EntityManager:
 
         # SELECT
         claim_select = f"SELECT DISTINCT " if distinct is True else f"SELECT "
+
+        headers = [str(head) for head in selection]
+        columns = [f"{table_anchor}.{col}" for col in headers]
+        selection = ', '.join([c for c in columns])
+        print(f"target: {selection}")
+
         claim_select += f"{selection}  "
         claim.append(claim_select)
+        print(f"claim_select: {claim_select}")
 
         # FROM
         claim_from = f"FROM {table_anchor} "
@@ -186,27 +246,12 @@ class EntityManager:
         try:
             self.db.cursor.execute(statement)
             records = self.db.cursor.fetchall()
-            return [record for record in records]
-        except Error as e:
-            print(f"The error '{e}' occurred")
 
-    def read_selection(self, id_prod):
-        """draft of the method to solve the main request of the program"""
+            for record in records:
+                values = list(record)
+                attrs = dict(zip(headers, values))
 
-        query = (
-                f"SELECT * FROM product "
-                f"WHERE id_product IN ( "
-                f"  SELECT id_product FROM category_product "
-                f"  WHERE id_category IN ( "
-                f"    SELECT id_category FROM category_product "
-                f"    WHERE id_product = {id_prod} "
-                f"  ) "
-                f") "
-                f"ORDER BY nutriscore "
-                f";"
-        )
+                return self.create_instance(table_anchor, **attrs)
 
-        try:
-            self.db.cursor.execute(query)
         except Error as e:
             print(f"The error '{e}' occurred")

@@ -6,9 +6,7 @@ and deal with the reformatting of the data.
 
 import requests
 
-from Model.Entity.product import Product
 from Model.Manager.entity_manager import EntityManager
-
 import Static.constant as constant
 
 
@@ -18,6 +16,9 @@ class APIManager:
     - Take the elements from the class API to use as variables for the methods of requests.
     - Create 'responses': a list of objects of class Response (from package requests).
     """
+
+    # Class variable
+    entity_manager = EntityManager()
 
     def __init__(self, url=None, page_size=None, page_number=None):
 
@@ -66,15 +67,15 @@ class APIManager:
                 # use try/except as a filter, to discard instances of 'Product' with missing values
                 try:
                     # try to create an instance of class 'Product' with required values
-                    product = Product.from_api(
-                            name=outline['product_name_fr'],
-                            nutriscore=outline['nutriscore_score'],
-                            url=outline['url'],
-                            categories=outline['categories'],
-                            stores=outline['stores']
-                    )
+                    attrs = {
+                            'name':outline['product_name_fr'],
+                            'nutriscore':outline['nutriscore_score'],
+                            'url':outline['url'],
+                            'categories':outline['categories'],
+                            'stores':outline['stores']
+                    }
+                    product = self.entity_manager.create_instance('product', **attrs)
                     # discard this instance and jump to the next, if a value is empty
-                    # if any(product.get_values()) == "":
                     if any(v for (k, v) in product.get_items()) == "":
                         raise KeyError
                 # discard this instance and jump to the next, if a value is missing
