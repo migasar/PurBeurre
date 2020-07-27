@@ -38,6 +38,7 @@ class EntityManager:
         """Serialize a nested list (of an unknown depth).
 
         It returns a flattened list with the same elements (they are all brought at the same level).
+        This method is used by the method insert_all() on the result from the method create_query().
         """
 
         atoms = [] if components is None else components
@@ -66,7 +67,9 @@ class EntityManager:
         for item in entity.get_items():
             attribute_key = item[0]
             attribute_value = item[1]
+
             if attribute_value is None:
+                # discard the attributes without value
                 pass
             elif type(attribute_value) is list:
                 # launch a recursive call if the attribute is a repository of other instances
@@ -114,47 +117,48 @@ class EntityManager:
         return children
 
     def create_instance(self, entity, **attributes):
+        """Create an instance of an entity.
 
-        if entity == 'product':
+        Generic method to create an instance of product, category or store
+        from elements retrieved from the API or from the DB.
 
-            for key, value in attributes.items():
+        'entity' is a string, giving the name of the entity to be instanciated (Product, Category, or Store)
+        '**attributes' is a dictionary, which can contain 2 types of items:
+          - the attributes of the instanciation
+          - the elements for a recursive call to create_instance()
+        """
 
-                if key == 'categories':
-                    if type(value) is str:
-                        categories = []
-                        for cat in value.split(','):
-                            try:
-                                category = Category(
-                                        name=str(cat).strip()
-                                )
-                                if category.name == "":
-                                    raise KeyError
-                            except KeyError:
-                                continue
-                            else:
-                                categories.append(category)
-                        attributes[key] = categories
+        # loop over the dictionary to define the purpose of the pair (key, value)
+        for key, value in attributes.items():
 
-                elif key == 'stores':
-                    if type(value) is str:
-                        stores = []
-                        for shop in value.split(','):
-                            try:
-                                store = Store(
-                                        name=str(shop).strip()
-                                )
-                                if store.name == "":
-                                    raise KeyError
-                            except KeyError:
-                                continue
-                            else:
-                                stores.append(store)
-                        attributes[key] = stores
+            if key in self.register and type(value) is str:
+                # the item is a long string of categories or stores
 
-            return Product(**attributes)
+                instance_list = []
+                # subdivise this long string in many strings: one per 'category' or 'store'
+                for val in value.split(','):
 
-        else:
-            return self.register[entity](**attributes)
+                    # try to create an instance for each 'category' or 'store'
+                    try:
+                        # if the key is in the register, it means that its values should be transformed in instances
+                        instance = self.register[key](
+                                name=str(val).strip()
+                        )
+                        # discard the insatnce if the name is missing
+                        if instance.name == "":
+                            raise KeyError
+                    except KeyError:
+                        continue
+                    else:
+                        # finallly, add the instance to the list
+                        instance_list.append(instance)
+
+                # update this value inthe dictionary: replace the long string to a list of instances
+                attributes[key] = instance_list
+
+        # use the value in the register to instanciate the class
+        # (because we can't use a string with the name of a class to instanciate this class)
+        return self.register[entity](**attributes)
 
     def insert_all(self, payload):
         """Insert rows in a table.
@@ -190,13 +194,18 @@ class EntityManager:
             # yield each statement in the generator expression (created with parameter 'multi=True')
             for _ in (self.db.cursor.execute(statement, multi=True)):
                 continue
-
         except Error as e:
             print(f"The error '{e}' occurred")
 
-    def read_row(self, table_anchor, selection='*', distinct=True, **claims):
+    def select_row(self, table_anchor, selection='*', distinct=True, **claims):
+        """Retrieve a row from the db and bring it back as an instance of an entity.
 
-        # Query
+        table_anchor: the name of the table where is the row that we want
+        selection: the columns with the values of the row that we want (by default, we take all columns)
+        **claims: optional components to build the query to the db
+        """
+
+        # query
         claim = []
 
         # SELECT
@@ -205,11 +214,9 @@ class EntityManager:
         headers = [str(head) for head in selection]
         columns = [f"{table_anchor}.{col}" for col in headers]
         selection = ', '.join([c for c in columns])
-        print(f"target: {selection}")
 
         claim_select += f"{selection}  "
         claim.append(claim_select)
-        print(f"claim_select: {claim_select}")
 
         # FROM
         claim_from = f"FROM {table_anchor} "
@@ -223,6 +230,7 @@ class EntityManager:
                     f"= {table_anchor}.{claims['join']['row_key']} "
             )
             claim.append(claim_join)
+
         # WHERE
         if 'where' in claims:
             claim_where = (
@@ -230,16 +238,17 @@ class EntityManager:
                     f"= {claims['where']['row_value']} "
             )
             claim.append(claim_where)
+
         # ORDER
         if 'order' in claims:
             claim_order = f"ORDER BY {claims['order']} "
             claim.append(claim_order)
 
-        # Punctuation
+        # punctuation
         claim_tail = ";"
         claim.append(claim_tail)
 
-        # Format the query
+        # format the query
         statement = str(' '.join(claim))
 
         # execute the query
@@ -247,10 +256,14 @@ class EntityManager:
             self.db.cursor.execute(statement)
             records = self.db.cursor.fetchall()
 
+            # records is a list
             for record in records:
+
+                # retrieve the elements from each record, that will serve as values for the next method
                 values = list(record)
                 attrs = dict(zip(headers, values))
 
+                # create an instance with elements found in this row of th db
                 return self.create_instance(table_anchor, **attrs)
 
         except Error as e:

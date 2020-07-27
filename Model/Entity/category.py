@@ -9,7 +9,6 @@ class Category:
         # Predefine attributes with default values
         self.id_category = None
         self.name = None
-        # self.products = None
 
         # Get a list of all predefined values directly from __dict__
         whitelist = list(self.__dict__.keys())

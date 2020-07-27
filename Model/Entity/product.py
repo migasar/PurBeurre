@@ -11,8 +11,8 @@ class Product:
         self.name = None
         self.nutriscore = None
         self.url = None
-        self.categories = None
-        self.stores = None
+        self.category = None
+        self.store = None
 
         # Get a list of all predefined values directly from __dict__
         whitelist = list(self.__dict__.keys())
@@ -22,7 +22,7 @@ class Product:
             if key in whitelist:
                 setattr(self, key, value)
             else:
-                raise ValueError(f"{key}, unexpected kwarg value: {value}")
+                raise ValueError(f"Unexpected kwarg value: {value}")
 
     def __repr__(self):
         """Create a more usable representation of the object.

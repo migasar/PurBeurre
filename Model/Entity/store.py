@@ -9,7 +9,6 @@ class Store:
         # Predefine attributes with default values
         self.id_store = None
         self.name = None
-        # self.products = None
 
         # Get a list of all predefined values directly from __dict__
         whitelist = list(self.__dict__.keys())
@@ -34,7 +33,7 @@ class Store:
         ]
 
         return (f"{self.__class__.__name__}"
-                f"({', '. join([v for v in values_list])})")
+                f"({', '.join([v for v in values_list])})")
 
     def get_items(self):
         """Create a list of tuples with the name and the value of each attribute (which are not empty)."""

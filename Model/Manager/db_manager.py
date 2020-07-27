@@ -73,7 +73,6 @@ class DBManager(Borg):
                         user=self.user_name,
                         passwd=self.user_password
                 )
-
             # create a connection specifically to a database
             else:
                 self.connection = mysql.connect(

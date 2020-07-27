@@ -64,15 +64,16 @@ class APIManager:
 
             # use if/else as a filter, to keep products with categories in french
             if outline['categories_lc'] == 'fr':
+
                 # use try/except as a filter, to discard instances of 'Product' with missing values
                 try:
                     # try to create an instance of class 'Product' with required values
                     attrs = {
-                            'name':outline['product_name_fr'],
-                            'nutriscore':outline['nutriscore_score'],
-                            'url':outline['url'],
-                            'categories':outline['categories'],
-                            'stores':outline['stores']
+                            'name': outline['product_name_fr'],
+                            'nutriscore': outline['nutriscore_score'],
+                            'url': outline['url'],
+                            'category': outline['categories'],
+                            'store': outline['stores']
                     }
                     product = self.entity_manager.create_instance('product', **attrs)
                     # discard this instance and jump to the next, if a value is empty
