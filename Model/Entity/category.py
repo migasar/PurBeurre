@@ -2,7 +2,7 @@
 
 
 class Category:
-    """Create an object describing one category"""
+    """Create an object describing one category."""
 
     def __init__(self, **kwargs):
 

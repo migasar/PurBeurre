@@ -34,88 +34,6 @@ class EntityManager:
         self.connection = db.connection
         self.cursor = db.cursor
 
-    def unpack_listing(self, listing, components=None):
-        """Serialize a nested list (of an unknown depth).
-
-        It returns a flattened list with the same elements (they are all brought at the same level).
-        This method is used by the method insert_all() on the result from the method create_query().
-        """
-
-        atoms = [] if components is None else components
-
-        for element in listing:
-            # if the function encounters another level, it launch a recursive call to bring its elements forward
-            if type(element) is list:
-                self.unpack_listing(element, atoms)
-            else:
-                atoms.append(element)
-
-        return atoms
-
-    def create_query(self, entity, parent=None):
-        """Create a string used as a query, from a formatted string and the variables used as parameters."""
-
-        # repository for the formatted queries
-        children = []
-
-        # set the parameters
-        table_name = entity.__class__.__name__.lower()
-        row_keys = []
-        row_values = []
-
-        # unpack the attributes of the entity
-        for item in entity.get_items():
-            attribute_key = item[0]
-            attribute_value = item[1]
-
-            if attribute_value is None:
-                # discard the attributes without value
-                pass
-            elif type(attribute_value) is list:
-                # launch a recursive call if the attribute is a repository of other instances
-                for child in attribute_value:
-                    children.append(self.create_query(child, entity))
-            else:
-                # collect the variables needed to create a row of data
-                row_keys.append(attribute_key)
-                row_values.append(attribute_value)
-
-        # format the parameters
-        if (len(row_keys) or len(row_values)) == 1:
-            single_row_key = str("'" + str(row_keys[0]) + "'")
-            row_keys = str("(" + single_row_key + ")").replace("'", "")
-            single_row_value = str("'" + str(row_values[0]) + "'")
-            row_values = str("(" + single_row_value + ")")
-        else:
-            row_keys = str(tuple(row_keys)).replace("'", "")
-            row_values = str(tuple(row_values))
-
-        # format the query
-        query = (
-                f"INSERT INTO {table_name} "
-                f"  {row_keys} "
-                f"  VALUES {row_values} "
-                f"ON DUPLICATE KEY UPDATE "
-                f"  id_{table_name} = LAST_INSERT_ID(id_{table_name}); "
-                f"SET @id_{table_name} = LAST_INSERT_ID() "
-        )
-
-        # depending of the instance, modify the query to add a request for the tables of associations
-        if parent is not None:
-            parent_name = parent.__class__.__name__.lower()
-            query_tail = (
-                    f"; "
-                    f"INSERT IGNORE INTO {table_name}_{parent_name} "
-                    f"  (id_{table_name}, id_{parent_name}) "
-                    f"  VALUES (@id_{table_name}, @id_{parent_name}) "
-            )
-            query += query_tail
-
-        # finally, the formatted query is added to the list of 'queries'
-        children.append(query)
-
-        return children
-
     def create_instance(self, entity, **attributes):
         """Create an instance of an entity.
 
@@ -160,6 +78,88 @@ class EntityManager:
         # (because we can't use a string with the name of a class to instanciate this class)
         return self.register[entity](**attributes)
 
+    def create_query_insert_row(self, entity, parent=None):
+        """Create a string used as a query, from a formatted string and the variables used as parameters."""
+
+        # repository for the formatted queries
+        children = []
+
+        # set the parameters
+        table_name = entity.__class__.__name__.lower()
+        row_keys = []
+        row_values = []
+
+        # unpack the attributes of the entity
+        for item in entity.get_items():
+            attribute_key = item[0]
+            attribute_value = item[1]
+
+            if attribute_value is None:
+                # discard the attributes without value
+                pass
+            elif type(attribute_value) is list:
+                # launch a recursive call if the attribute is a repository of other instances
+                for child in attribute_value:
+                    children.append(self.create_query_insert_row(child, entity))
+            else:
+                # collect the variables needed to create a row of data
+                row_keys.append(attribute_key)
+                row_values.append(attribute_value)
+
+        # format the parameters
+        if (len(row_keys) or len(row_values)) == 1:
+            single_row_key = str("'" + str(row_keys[0]) + "'")
+            row_keys = str("(" + single_row_key + ")").replace("'", "")
+            single_row_value = str("'" + str(row_values[0]) + "'")
+            row_values = str("(" + single_row_value + ")")
+        else:
+            row_keys = str(tuple(row_keys)).replace("'", "")
+            row_values = str(tuple(row_values))
+
+        # format the query
+        query = (
+                f"INSERT INTO {table_name} "
+                f"  {row_keys} "
+                f"  VALUES {row_values} "
+                f"ON DUPLICATE KEY UPDATE "
+                f"  id_{table_name} = LAST_INSERT_ID(id_{table_name}); "
+                f"SET @id_{table_name} = LAST_INSERT_ID() "
+        )
+
+        # depending of the instance, modify the query to add a request for the tables of associations
+        if parent is not None:
+            parent_name = parent.__class__.__name__.lower()
+            query_tail = (
+                    f"; "
+                    f"INSERT IGNORE INTO {table_name}_{parent_name} "
+                    f"  (id_{table_name}, id_{parent_name}) "
+                    f"  VALUES (@id_{table_name}, @id_{parent_name}) "
+            )
+            query += query_tail
+
+        # finally, the formatted query is added to the list of 'queries'
+        children.append(query)
+
+        return children
+
+    def flatten_list(self, listing, components=None):
+        """Serialize a nested list (of an unknown depth).
+
+        It returns a flattened list with the same elements (they are all brought at the same level).
+        This method is used by the method insert_all() on the result from the method create_query_insert_row().
+        """
+
+        atoms = [] if components is None else components
+
+        for element in listing:
+            # if the function encounters another level, it launch a recursive call to bring its elements forward
+            if type(element) is list:
+                self.flatten_list(element, atoms)
+            else:
+                atoms.append(element)
+
+        return atoms
+
     def insert_all(self, payload):
         """Insert rows in a table.
 
@@ -177,13 +177,13 @@ class EntityManager:
         if type(payload) is list:
             # create a query for each instance of the list
             for instance in payload:
-                queries.append(self.create_query(instance))
+                queries.append(self.create_query_insert_row(instance))
         else:
             # in case payload is a single instance
-            queries.append(self.create_query(payload))
+            queries.append(self.create_query_insert_row(payload))
 
         # unpack the nested lists
-        request = self.unpack_listing(queries)
+        request = self.flatten_list(queries)
         # reverse back the order of the stack of queries
         request.reverse()
 

@@ -2,7 +2,7 @@
 
 
 class Store:
-    """Create an object describing one store"""
+    """Create an object describing one store."""
 
     def __init__(self, **kwargs):
 
