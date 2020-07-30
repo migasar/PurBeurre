@@ -3,67 +3,41 @@
 Call all the elements of the program in an orchestrated manner.
 """
 
-import os
-import json
-
-from Model.Entity.category import Category
-from Model.Entity.product import Product
-from Model.Entity.store import Store
-
-from Model.Manager.api_manager import APIManager
 from Model.Manager.db_manager import DBManager
 from Model.Manager.entity_manager import EntityManager
+from Model.Manager.api_manager import APIManager
 
-import Static.credential as credential
-import Static.constant as constant
-import Static.sql_queries as queries
+from Controller.cli_controller import CLIController
+from View.cli_view import CLIView
 
 
-def main():
-    """Launch the program by calling the first modules of its internal process"""
+class Main:
 
-    # FUNCTIONS
+    def __init__(self):
 
-    def create_database():
-        # CREATE DATABASE AND DB CONNECTION
+        # create the managers
+        self.db_manager = DBManager()
+        self.entity_manager = EntityManager(self.db_manager)
+        self.api_manager = APIManager()
 
-        db_builder = DBManager()
-        db_builder.build_database()
-        print("DB created !")
+        # create the controllers
+        self.controller = CLIController()
+        self.view = CLIView()
 
-        return db_builder
+    def create_database(self):
 
-    def call_api():
-        # CREATE API
+        # build the database skeleton
+        self.db_manager.build_database()
 
-        api_caller = APIManager()
-        api_caller.get_load()
-        print("API called !")
+        # call the API
+        self.api_manager.get_load()
 
-        return api_caller
+        # download the data (from the API to the DB)
+        self.api_manager.download_data(self.entity_manager)
 
-    def create_entity_manager(db_manager):
-        # CREATE ENTITY MANAGER
-
-        entity_manager = EntityManager(db_manager)
-        print("Entity Manager created !")
-
-        return entity_manager
-
-    def download_data(api_manager, entity_manager):
-        # SAVE DATA IN DB
-
-        api_manager.download_data(entity_manager)
-        print("Data downloaded !")
-
-        return api_manager
-
-    # ACTIONS
-    db = create_database()
-    api = call_api()
-    entity = create_entity_manager(db)
-    download = download_data(api, entity)
+    def start_session(self):
+        pass
 
 
 if __name__ == "__main__":
-    main()
+    main = Main()
