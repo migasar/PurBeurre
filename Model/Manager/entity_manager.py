@@ -22,34 +22,38 @@ class EntityManager:
     The variable database is an instance of the class DBManager.
     """
 
-    # Class variable:
-    register = {
-            'product': Product,
-            'category': Category,
-            'store': Store
-    }
-
     def __init__(self, db=DBManager()):
         self.db = db
         self.connection = db.connection
         self.cursor = db.cursor
 
-    def create_instance(self, entity, **attributes):
+    @staticmethod
+    def create_instance(entity, **attributes):
         """Create an instance of an entity.
 
         Generic method to create an instance of product, category or store
         from elements retrieved from the API or from the DB.
 
         'entity' is a string, giving the name of the entity to be instanciated (Product, Category, or Store)
+        'entity' is not used directly, but as a key of class_register
+        (because we can't use a string with the name of a class to instanciate this class)
+
         '**attributes' is a dictionary, which can contain 2 types of items:
           - the attributes of the instanciation
           - the elements for a recursive call to create_instance()
         """
 
+        # Register of the classes callable by the method:
+        class_register = {
+                'product': Product,
+                'category': Category,
+                'store': Store
+        }
+
         # loop over the dictionary to define the purpose of the pair (key, value)
         for key, value in attributes.items():
 
-            if key in self.register and type(value) is str:
+            if key in class_register and type(value) is str:
                 # the item is a long string of categories or stores
 
                 instance_list = []
@@ -59,11 +63,15 @@ class EntityManager:
                     # try to create an instance for each 'category' or 'store'
                     try:
                         # if the key is in the register, it means that its values should be transformed in instances
-                        instance = self.register[key](
+                        instance = class_register[key](
                                 name=str(val).strip()
                         )
                         # discard the insatnce if the name is missing
                         if instance.name == "":
+                            raise KeyError
+                        # discard the instance if the name contains some special characters
+                        elif "'" in instance.name:
+                            # to simplify the construction of statements for sql
                             raise KeyError
                     except KeyError:
                         continue
@@ -75,8 +83,8 @@ class EntityManager:
                 attributes[key] = instance_list
 
         # use the value in the register to instanciate the class
-        # (because we can't use a string with the name of a class to instanciate this class)
-        return self.register[entity](**attributes)
+
+        return class_register[entity](**attributes)
 
     def create_query_insert_row(self, entity, parent=None):
         """Create a string used as a query, from a formatted string and the variables used as parameters."""
