@@ -24,19 +24,13 @@ class Main:
         self.controller = CLIController()
         self.view = CLIView()
 
-    def create_database(self):
-
-        # build the database skeleton
-        self.db_manager.build_database()
-
-        # call the API
-        self.api_manager.get_load()
-
-        # download the data (from the API to the DB)
-        self.api_manager.download_data(self.entity_manager)
+    def renew_database(self):
+        # create the database
+        self.controller.create_database()
 
     def start_session(self):
-        pass
+        # launch the terminal interface
+        self.controller.new_session()
 
 
 if __name__ == "__main__":
