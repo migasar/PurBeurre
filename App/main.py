@@ -8,7 +8,6 @@ from Model.Manager.entity_manager import EntityManager
 from Model.Manager.api_manager import APIManager
 
 from Controller.cli_controller import CLIController
-from View.cli_view import CLIView
 
 
 class Main:
@@ -22,16 +21,6 @@ class Main:
 
         # create the controllers
         self.controller = CLIController()
-        self.view = CLIView()
 
-    def renew_database(self):
-        # create the database
-        self.controller.create_database()
-
-    def start_session(self):
-        # launch the terminal interface
+        # create the interface
         self.controller.new_session()
-
-
-if __name__ == "__main__":
-    main = Main()
