@@ -14,15 +14,15 @@ class CLIController:
      - the input of the user
     """
 
-    # Class variable (register of all the possible phases in the flow of the program):
+    # Class variable (register of all the phases in the flow of the program):
     steps = {
+            'closing': 0,
             'opening': 1,
             'category': 2,
             'product': 3,
             'substitute': 4,
             'saving': 5,
-            'favorite': 6,
-            'closing': 99
+            'favorite': 6
     }
 
     def __init__(self):
@@ -30,11 +30,25 @@ class CLIController:
         self.entity_manager = EntityManager()
         self.api_manager = APIManager()
         self.view = CLIView()
-        self.choice = None  # user input
-        self.phase = self.steps['opening']  # the actual phase in the flow of the program
 
+        self.phase = self.steps['opening']  # the actual phase in the program
+        self.input = None  # user input
+        self.choices = {
+                'catalog_category': [],
+                'opt_category': [],
+                'roster_product': [],
+                'opt_product': [],
+                'roster_substitute': [],
+                'opt_substitute': [],
+                'roster_favorite': []
+        }  # results based on user input
+
+    # structure
     def create_database(self):
-        """Call the elements to create the database and to retrieve the data to fill it."""
+        """Call the elements to create the database,
+
+        and to retrieve the data to fill it.
+        """
 
         # build the database skeleton
         self.entity_manager.db.build_database()
@@ -45,228 +59,459 @@ class CLIController:
         # download the data (from the API to the DB)
         self.api_manager.download_data(self.entity_manager)
 
+    def fulfill_database(self):
+        """Replenish the db if it is empty."""
+
+        # interrogate the db to see if it is empty
+        production = [
+            p for p in self.entity_manager.select_row(
+                table_anchor='product',
+                selection=['id_product', 'name']
+            )
+        ]
+
+        # replenish the db
+        if not production:
+            # call the API
+            self.api_manager.get_load()
+            # download the data (from the API to the DB)
+            self.api_manager.download_data(self.entity_manager)
+
     def new_session(self):
         """Call the elements to start the program"""
 
+        self.fulfill_database()
         self.view.text_introduction()
         self.action_triage()
 
-    def action_call(self, *args):
+    # flow
+    def action_call(self):
         """Ask for an action to the user, and treat its command.
 
-        Verify which command was sent by the user, and call the related methods.
+        Verify which command was sent by the user, and call its methods.
         """
 
-        # print the text describing the step and the commands common to every step
-        self.view.actions_explanation()
-        self.view.action_closing()  # 'X'
-        if self.phase == 1:  # opening step
-            self.view.action_renew_db()  # '0'
+        # print the text describing the step
+        self.view.commands_explanation()
+
+        # 1. opening step
+        if self.phase == self.steps['opening']:
+            self.view.command_closing()  # 'X' command
+            self.view.command_renew_db()  # '0' command
+            self.view.command_opening()  # 1-2 commands
+
+        # 2. category step
+        elif self.phase == self.steps['category']:
+            self.view.text_category()
+            self.view.command_closing()  # 'X' command
+            self.view.command_backstep()  # '0' command
+            self.view.display_category(self.choices['catalog_category'])  # n commands
+
+        # 3. product step
+        elif self.phase == self.steps['product']:
+            self.view.text_product()
+            self.view.command_closing()  # 'X' command
+            self.view.command_backstep()  # '0' command
+            self.view.display_product(self.choices['roster_product'])  # n commands
+
+        # 4. substitute step
+        elif self.phase == self.steps['substitute']:
+            self.view.text_substitute()
+            self.view.command_closing()  # 'X' command
+            self.view.command_backstep()  # '0' command
+            self.view.display_product(self.choices['roster_substitute'])  # n commands
+
+        # 5. saving step
+        elif self.phase == self.steps['saving']:
+            self.view.command_closing()  # 'X' command
+            self.view.command_backstep()  # '0' command
+            self.view.command_saving()  # 1-2 commands
+            self.view.display_substitute(self.choices['opt_substitute'])
+
+        # 6. favorite step
+        elif self.phase == self.steps['favorite']:
+            self.view.command_closing()  # 'X' command
+            self.view.command_newstep()  # '0' command
+            self.view.display_favorite(self.choices['roster_favorite'])
+
+        # get the input from the user and test if it is a valid option
+        self.input = None
+        self.input = self.view.input_request()
+
+        self.check_input()
+
+        # flag input failure
+        if self.input is None:
+            self.view.input_failure()
+            return self.action_triage()
         else:
-            self.view.action_backstep()  # '0'
+            return self.input
 
-        # print the actions specific to the current step
-        if self.phase == self.steps['opening']:  # 1-2 commands
-            # 1. opening step
-            self.view.action_opening()
+    def action_triage(self):
+        """Orchestrate the flow of the program.
 
-        elif self.phase == self.steps['category']:  # n commands
-            # 2. category step
-            self.view.display_category(*args)
-
-        elif self.phase == self.steps['product']:  # n commands
-            # 3. product step
-            self.view.display_product(*args)
-
-        elif self.phase == self.steps['substitute']:  # n commands
-            # 4. substitute step
-            self.view.display_result(*args)
-            self.view.action_substitute()
-
-        elif self.phase == self.steps['saving']:  # 1-2 commands
-            # 5. saving step
-            self.view.action_saving()
-            self.view.display_result(*args)
-
-        elif self.phase == self.steps['favorite']:  # no specific commands for this step
-            # 6. favorite step
-            self.view.display_result(*args)
-
-        # get the input from the user
-        self.choice = None
-        self.choice = self.view.input_request()
-        return self.choice
-
-    def action_triage(self, *args):
-        """Orchestrate the flow of the program, by selecting the next methods to call.
-
+        It selects the next methods to call.
         The methods are chosen in function
         of the current phase of the program
         and the command sent by the user.
         """
 
-        # x. closing step
-        if self.phase == self.steps['closing'] or (type(self.choice) is str and self.choice.lower() == 'x'):
-            self.view.text_closing()
-            exit()  # or something like this to close the program
+        # 0. closing step:
+        if self.phase == self.steps['closing']:
+            self.step_closing()
 
         # 1. opening step
         elif self.phase == self.steps['opening']:
-
-            self.action_call()
-
-            # recreate the db
-            if self.choice == 0:
-                # TODO: method to create the new db, to be tested in the flow
-                self.create_database()
-                self.action_triage()
-
-            # toward category step
-            elif self.choice == 1:
-                self.phase = self.steps['category']
-                self.action_triage()
-
-            # toward favorite step
-            elif self.choice == 2:
-                self.phase = self.steps['favorite']
-                self.action_triage()
-
-            # flag input failure
-            else:
-                self.view.input_failure()
-                self.action_call()  # args = [products from favorite]
-                self.action_triage()
+            self.step_opening()
 
         # 2. category step
         elif self.phase == self.steps['category']:
-
-            # TODO: fetch a list of instances with all the categories in the table 'category'
-            argus_category = self.entity_manager.select_row(table_anchor='category', selection=['id_category', 'name'])
-            self.action_call(*args)  # args = [categories]
-
-            # rollback to the previous step
-            if self.choice == 0:
-                self.phase -= 1
-                self.action_triage(*args)
-
-            # pick a category
-            elif self.choice in 'id_categories_list':
-                # id_categories_list -> with the ids of the categories in the list
-                self.phase = self.steps['product']
-                # TODO: how to pass the selected id_category in the next segment of the loop ?
-                self.action_triage(*args)  # args = selected id_category
-
-            # flag input failure
-            else:
-                self.view.input_failure()
-                self.action_triage()
+            self.step_category()
 
         # 3. product step
         elif self.phase == self.steps['product']:
-
-            # TODO: fetch a list of instances with all the products in the table 'product' for the selected category
-            self.action_call(*args)  # args = [products from one category]
-
-            # rollback to the previous step
-            if self.choice == 0:
-                self.phase -= 1
-                self.action_triage(*args)
-
-            # pick a product
-            elif self.choice in 'id_products_list':
-                # id_products_list -> with the ids of the products in the list
-                self.phase = self.steps['substitute']
-                # TODO: how to pass the selected id_product in the next segment of the loop ?
-                self.action_triage(*args)  # args = selected base id_product
-
-            # flag input failure
-            else:
-                self.view.input_failure()
-                self.action_triage(*args)  # args = [categories]
+            self.step_product()
 
         # 4. substitute step
         elif self.phase == self.steps['substitute']:
-
-            # TODO: fetch a list of instances with all the products in the table 'product' with at least one category in common with the selected product
-            self.action_call(*args)  # args = [substitutes to the base product]
-
-            # rollback to the previous step
-            if self.choice == 0:
-                self.phase -= 1
-                self.action_triage(*args)
-
-            # pick a substitute
-            elif self.choice in 'id_substitutes_list':
-                # id_substitutes_list -> with the ids of the substitutes in the list
-                self.phase = self.steps['saving']
-                # TODO: how to pass the selected id_substitute in the next segment of the loop ?
-                self.action_triage(*args)  # args = selected substitute id_product
-
-            # flag input failure
-            else:
-                self.view.input_failure()
-                self.action_triage(*args)  # args = selected base id_product
+            self.step_substitute()
 
         # 5. saving step
         elif self.phase == self.steps['saving']:
-
-            # display the result and propose to save it in the favorites
-            self.action_call(*args)  # args = selected substitute id_product
-
-            # rollback to the previous step
-            if self.choice == 0:
-                self.phase -= 1
-                self.action_triage(*args)
-
-            # return to the main menu
-            elif self.choice == 1:
-                self.phase = self.steps['opening']
-                self.action_triage()
-
-            # save the substitute
-            elif self.choice == 2:
-                # TODO: update the table 'favorite' by adding the selected substitute id_product
-                self.phase = self.steps['favorite']
-                self.action_triage()
-
-            # flag input failure
-            else:
-                self.view.input_failure()
-                self.action_triage(*args)  # args = selected substitute id_product
+            self.step_saving()
 
         # 6. favorite step
         elif self.phase == self.steps['favorite']:
+            self.step_favorite()
 
-            # TODO: fetch a list of instances with all the products in the table 'favorite'
-            self.action_call(*args)  # args = [products from favorite]
+    # input
+    def check_input(self):
 
-            # return to the main menu
-            if self.choice == 0:
-                self.phase = self.steps['opening']
-                self.action_triage()
+        if type(self.input) is str:
 
-            # flag input failure
+            try:
+                # check if the input can be coerced in an integer
+                int(self.input)
+
+            except ValueError:
+                # check if the input is the closure command
+                if self.input.lower() == 'x':
+                    # close the program
+                    self.phase = self.steps['closing']
+                    self.action_triage()
+
+                # concludes that the input is a wrong command
+                else:
+                    self.input = None
+
             else:
-                self.view.input_failure()
-                self.action_triage()
+                # coerce the input in an integer if possible
+                self.input = int(self.input)
 
-        # # rollback
-        # if self.choice == 0:
-        #
-        #     # recreate the db
-        #     if self.phase == self.steps['opening']:
-        #         self.choice = None
-        #         # recreate the db  ==> controller needs to have access to a manager
-        #         self.action_triage()
-        #
-        #     # return to the main menu
-        #     if self.phase == self.steps['favorite']:
-        #         self.choice = None
-        #         self.phase = self.steps['opening']
-        #         self.action_triage()
-        #
-        #     # return to the previous step
-        #     else:
-        #         self.choice = None
-        #         self.phase -= 1
-        #         self.action_triage(*args)
+        else:
+            # concludes that the input is of the wrong type
+            self.input = None
+
+        return self.input
+
+    def clear_choices(self):
+        """Restore the default values in the dictionnary self.choices"""
+
+        for key, value in self.choices.items():
+            self.choices[key] = []
+
+        return self.choices
+
+    # steps
+    def step_closing(self):
+
+        # announce the end of the program and close it
+        self.view.text_closing()
+        exit()
+
+    def step_opening(self):
+
+        # reset the dictionnary self.choices
+        self.clear_choices()
+
+        # call the user input for this step
+        self.action_call()
+
+        # recreate the db
+        if self.input == 0:
+            self.view.text_new_db()
+            self.create_database()
+            self.action_triage()
+
+        # go to category step
+        elif self.input == 1:
+            self.phase = self.steps['category']
+            self.action_triage()
+
+        # go to favorite step
+        elif self.input == 2:
+            self.phase = self.steps['favorite']
+            self.action_triage()
+
+        # flag input failure
+        else:
+            self.view.input_failure()
+            return self.action_triage()
+
+    def step_category(self):
+
+        # interrogate the db to get a list of all the categories
+        claims_category = {
+                'order': 'id_category'
+        }
+        self.choices['catalog_category'] = self.entity_manager.select_row(
+            table_anchor='category',
+            selection=['id_category', 'name'],
+            **claims_category
+        )
+
+        # create a list of id numbers to test if the input is an error
+        register_id_category = [
+                c.id_category for c in self.choices['catalog_category']
+        ]
+
+        # display the categories and propose to select one
+        self.action_call()
+
+        # rollback to the previous step
+        if self.input == 0:
+            self.phase -= 1
+            self.action_triage()
+
+        # pick a category and go to product step
+        elif self.input in register_id_category:
+
+            for cat in self.choices['catalog_category']:
+                if self.input == cat.id_category:
+                    self.choices['opt_category'].append(cat)
+
+            self.phase = self.steps['product']
+            self.action_triage()
+
+        # flag input failure
+        else:
+            self.view.input_failure()
+            return self.action_triage()
+
+    def step_product(self):
+
+        # interrogate the db to get the products in the category
+        claims_product = {
+                'order': 'id_product',
+                'join': {
+                        'table_adjunct': 'category_product',
+                        'row_key_adjunct': 'id_product',
+                        'row_key_anchor': 'id_product'
+                },
+                'where': {
+                        'table_adjunct': 'category_product',
+                        'row_key': 'id_category',
+                        'row_value': self.choices['opt_category'][0].id_category
+                }
+        }
+
+        self.choices['roster_product'] = self.entity_manager.select_row(
+            table_anchor='product',
+            selection=['id_product', 'name', 'nutriscore', 'url'],
+            **claims_product
+        )
+
+        # create a list of id numbers to test if the input is an error
+        register_id_product = [
+                p.id_product for p in self.choices['roster_product']
+        ]
+
+        # display the products and propose to select one
+        self.action_call()
+
+        # rollback to the previous step
+        if self.input == 0:
+            self.phase -= 1
+            self.action_triage()
+
+        # pick a product and go to substitute step
+        elif self.input in register_id_product:
+
+            for prod in self.choices['roster_product']:
+                if self.input == prod.id_product:
+                    self.choices['opt_product'].append(prod)
+
+            self.phase = self.steps['substitute']
+            self.action_triage()
+
+        # flag input failure
+        else:
+            self.view.input_failure()
+            return self.action_triage()
+
+    def step_substitute(self):
+        """Interrogate the db to get a list of all the substitutes
+        of the selected product
+        by getting the products sharing at least one category.
+        """
+
+        # get all the categories of the selected product
+        claims_roster_cat = {
+                'order': 'id_category',
+                'join': {
+                        'table_adjunct': 'category_product',
+                        'row_key_adjunct': 'id_category',
+                        'row_key_anchor': 'id_category'
+                },
+                'where': {
+                        'table_adjunct': 'category_product',
+                        'row_key': 'id_product',
+                        'row_value': self.choices['opt_product'][0].id_product
+                }
+        }
+        roster_category = self.entity_manager.select_row(
+                table_anchor='category',
+                selection=['id_category', 'name'],
+                **claims_roster_cat
+        )
+
+        # create a list of id numbers to use as value for the next method
+        register_id_roster_cat = [r.id_category for r in roster_category]
+
+        # get all the products of the roster of categories
+        claims_substitute = {
+                'order': 'id_product',
+                'join': {
+                        'table_adjunct': 'category_product',
+                        'row_key_adjunct': 'id_product',
+                        'row_key_anchor': 'id_product'
+                },
+                'where': {
+                        'table_adjunct': 'category_product',
+                        'row_key': 'id_category',
+                        'row_value': register_id_roster_cat
+                }
+        }
+        self.choices['roster_substitute'] = self.entity_manager.select_row(
+                table_anchor='product',
+                selection=['id_product', 'name', 'nutriscore', 'url'],
+                **claims_substitute
+        )
+
+        # create a list of id numbers to test if the input is an error
+        register_id_substit = [
+                s.id_product for s in self.choices['roster_substitute']
+        ]
+
+        # display the substitutes and propose to select one
+        self.action_call()
+
+        # rollback to the previous step
+        if self.input == 0:
+            self.phase -= 1
+            self.action_triage()
+
+        # pick a substitute and go to saving step
+        elif self.input in register_id_substit:
+
+            for sub in self.choices['roster_substitute']:
+                if self.input == sub.id_product:
+                    self.choices['opt_substitute'].append(sub)
+
+            self.phase = self.steps['saving']
+            self.action_triage()
+
+        # flag input failure
+        else:
+            self.view.input_failure()
+            return self.action_triage()
+
+    def step_saving(self):
+
+        # get an instance of the selected product
+
+        # display the result and offer to save it in the favorites
+        self.action_call()
+
+        # rollback to the previous step
+        if self.input == 0:
+            self.phase -= 1
+            self.action_triage()
+
+        # return to the main menu
+        elif self.input == 1:
+            self.phase = self.steps['opening']
+            self.action_triage()
+
+        # save the substitute and go to favorite step
+        elif self.input == 2:
+            self.entity_manager.insert_row(
+                    table_anchor='favorite_product',
+                    row_keys=['id_base_product', 'id_substitute_product'],
+                    row_values=[
+                        self.choices['opt_product'][0].id_product,
+                        self.choices['opt_substitute'][0].id_product
+                    ]
+            )
+
+            self.phase = self.steps['favorite']
+            self.action_triage()
+
+        # flag input failure
+        else:
+            self.view.input_failure()
+            return self.action_triage()
+
+    def step_favorite(self):
+
+        # self.choices['roster_favorite'] = [
+        #     fav for fav in self.entity_manager.select_row(
+        #         table_anchor='favorite_product',
+        #         selection=['id_substitute_product']
+        #     )
+        # ]
+
+        # interrogate the db to get the id of the favorites
+        roster_id_fav = [
+            fav for fav in self.entity_manager.select_row(
+                table_anchor='favorite_product',
+                selection=['id_substitute_product']
+            )
+        ]
+        register_id_roster_fav = [r.id_product for r in roster_id_fav]
+
+        # test if there is no favorite yet
+        if not register_id_roster_fav:
+
+            self.view.text_no_favorite()
+            self.phase = self.steps['opening']
+            self.action_triage()
+
+        else:
+            # interrogate the db to get the instances of the favorites
+            claims_favorite = {
+                'order': 'id_product',
+                'where': {
+                    'table_adjunct': 'product',
+                    'row_key': 'id_product',
+                    'row_value': register_id_roster_fav
+                }
+            }
+            self.choices['roster_favorite'] = self.entity_manager.select_row(
+                table_anchor='product',
+                selection=['id_product', 'name', 'nutriscore', 'url'],
+                **claims_favorite
+            )
+
+        # display the substitutes saved as favorites
+        self.action_call()
+
+        # return to the main menu
+        if self.input == 0:
+            self.phase = self.steps['opening']
+            self.action_triage()
+
+        # flag input failure
+        else:
+            self.view.input_failure()
+            return self.action_triage()
