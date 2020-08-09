@@ -1,11 +1,7 @@
 """In charge of the manipulation of the content of the database.
 
-This module is a layer which handle the interactions between the database and the entities of the program
-It contains the methods CRUD of the program:
- - Create
- - Read
- - Update
- - Delete
+This module is a layer which handle the interactions,
+between the program, its objects and the database.
 """
 
 from mysql.connector import Error
@@ -34,9 +30,11 @@ class EntityManager:
         Generic method to create an instance of product, category or store
         from elements retrieved from the API or from the DB.
 
-        'entity' is a string, giving the name of the entity to be instanciated (Product, Category, or Store)
+        'entity' is a string, which gives the name of the entity
+         to instanciate: Product, Category, or Store
         'entity' is not used directly, but as a key of class_register
-        (because we can't use a string with the name of a class to instanciate this class)
+        (because we can't use a string with the name of a class
+         to instanciate this class)
 
         '**attributes' is a dictionary, which can contain 2 types of items:
           - the attributes of the instanciation
@@ -45,49 +43,96 @@ class EntityManager:
 
         # Register of the classes callable by the method:
         class_register = {
+                'favorite_product': Product,
                 'product': Product,
                 'category': Category,
                 'store': Store
         }
 
-        # loop over the dictionary to define the purpose of the pair (key, value)
+        # loop over the dictionary to revise the names of the attributes
+        if 'id_substitute_product' in attributes.keys():
+            attributes['id_product'] = attributes.pop('id_substitute_product')
+
+        # loop over the dictionary to define the use of the pair (key, value)
         for key, value in attributes.items():
 
             if key in class_register and type(value) is str:
-                # the item is a long string of categories or stores
+                # the item is a long string of multiple categories or stores
 
                 instance_list = []
-                # subdivise this long string in many strings: one per 'category' or 'store'
+                # split this long string in one string per entity
                 for val in value.split(','):
 
                     # try to create an instance for each 'category' or 'store'
                     try:
-                        # if the key is in the register, it means that its values should be transformed in instances
-                        instance = class_register[key](
-                                name=str(val).strip()
-                        )
-                        # discard the insatnce if the name is missing
+                        # if the key is in the register,
+                        # it means that its values can be instanciated
+                        instance = class_register[key](name=str(val).strip())
+
                         if instance.name == "":
+                            # discard the instance, if the name is missing
                             raise KeyError
-                        # discard the instance if the name contains some special characters
                         elif "'" in instance.name:
-                            # to simplify the construction of statements for sql
+                            # discard the instance, if the name contains quotes
+                            # to simplify the construction of sql queries
                             raise KeyError
+
                     except KeyError:
                         continue
+
                     else:
                         # finallly, add the instance to the list
                         instance_list.append(instance)
 
-                # update this value inthe dictionary: replace the long string to a list of instances
+                # update this value in the dictionary:
+                # replace the long string with the list of instances
                 attributes[key] = instance_list
 
         # use the value in the register to instanciate the class
-
         return class_register[entity](**attributes)
 
-    def create_query_insert_row(self, entity, parent=None):
-        """Create a string used as a query, from a formatted string and the variables used as parameters."""
+    def flatten_list(self, listing, components=None):
+        """Serialize a nested list (of an unknown depth).
+
+        It returns a flattened list,
+        with the same elements (they are all brought at the same level).
+        This method is used by the method insert_load(),
+        on the result from the method create_query_insert().
+        """
+
+        atoms = [] if components is None else components
+
+        for element in listing:
+            # if the function encounters another sub-level,
+            # it launch a recursive call to bring its elements forward
+            if type(element) is list:
+                self.flatten_list(element, atoms)
+            else:
+                atoms.append(element)
+
+        return atoms
+
+    @staticmethod
+    def format_row_parameters(row_keys, row_values):
+        # format the parameters as cleaned strings
+
+        if (len(row_keys) or len(row_values)) == 1:
+            single_row_key = str("'" + str(row_keys[0]) + "'")
+            row_keys = str("(" + single_row_key + ")").replace("'", "")
+            single_row_value = str("'" + str(row_values[0]) + "'")
+            row_values = str("(" + single_row_value + ")")
+
+        else:
+            row_keys = str(tuple(row_keys)).replace("'", "")
+            row_values = str(tuple(row_values))
+
+        return row_keys, row_values
+
+    def format_query_insert_load(self, entity, parent=None):
+        """Create a string used as a query.
+
+        from a formatted string and the variables used as parameters
+        """
 
         # repository for the formatted queries
         children = []
@@ -105,24 +150,22 @@ class EntityManager:
             if attribute_value is None:
                 # discard the attributes without value
                 pass
+
             elif type(attribute_value) is list:
-                # launch a recursive call if the attribute is a repository of other instances
+                # launch a recursive call,
+                # if the attribute is a repository of other instances
                 for child in attribute_value:
-                    children.append(self.create_query_insert_row(child, entity))
+                    children.append(
+                            self.format_query_insert_load(child, entity)
+                    )
+
             else:
                 # collect the variables needed to create a row of data
                 row_keys.append(attribute_key)
                 row_values.append(attribute_value)
 
-        # format the parameters
-        if (len(row_keys) or len(row_values)) == 1:
-            single_row_key = str("'" + str(row_keys[0]) + "'")
-            row_keys = str("(" + single_row_key + ")").replace("'", "")
-            single_row_value = str("'" + str(row_values[0]) + "'")
-            row_values = str("(" + single_row_value + ")")
-        else:
-            row_keys = str(tuple(row_keys)).replace("'", "")
-            row_values = str(tuple(row_values))
+        # format the parameters as cleaned strings inside parenthesis
+        row_keys, row_values = self.format_row_parameters(row_keys, row_values)
 
         # format the query
         query = (
@@ -134,7 +177,8 @@ class EntityManager:
                 f"SET @id_{table_name} = LAST_INSERT_ID() "
         )
 
-        # depending of the instance, modify the query to add a request for the tables of associations
+        # depending of the instance,
+        # modify the query to add a request for the tables of associations
         if parent is not None:
             parent_name = parent.__class__.__name__.lower()
             query_tail = (
@@ -150,32 +194,16 @@ class EntityManager:
 
         return children
 
-    def flatten_list(self, listing, components=None):
-        """Serialize a nested list (of an unknown depth).
-
-        It returns a flattened list with the same elements (they are all brought at the same level).
-        This method is used by the method insert_all() on the result from the method create_query_insert_row().
-        """
-
-        atoms = [] if components is None else components
-
-        for element in listing:
-            # if the function encounters another level, it launch a recursive call to bring its elements forward
-            if type(element) is list:
-                self.flatten_list(element, atoms)
-            else:
-                atoms.append(element)
-
-        return atoms
-
-    def insert_all(self, payload):
+    def insert_load(self, payload):
         """Insert rows in a table.
 
         The method 'insert_all' orchestrates the call to the methods
-        to create a query to insert a row in the db for each instance in 'payload.'
+        to create a query to insert a row in the db
+        for each instance in 'payload.'
 
-        The result will be a list of queries which will be coerced in a long string,
-        and then send to the db.
+        The result will be a list of queries,
+        which will be coerced in a long string,
+        and then sent to the db.
         """
 
         # repository for the formatted queries
@@ -185,31 +213,60 @@ class EntityManager:
         if type(payload) is list:
             # create a query for each instance of the list
             for instance in payload:
-                queries.append(self.create_query_insert_row(instance))
+                queries.append(
+                        self.format_query_insert_load(instance)
+                )
+
         else:
             # in case payload is a single instance
-            queries.append(self.create_query_insert_row(payload))
+            queries.append(
+                    self.format_query_insert_load(payload)
+            )
 
-        # unpack the nested lists
+        # unpack the nested list of queries
         request = self.flatten_list(queries)
         # reverse back the order of the stack of queries
+        # (because the method flatten_list is a recursive function,
+        # which put upside-down the order of elements in the nested list)
         request.reverse()
 
         # try to execute every query in one command to the db
         try:
-            # join together the elements of the list of queries, as one unique long string
+            # join in an unique string, all the elements of the list of queries
             statement = str('; '.join(request))
-            # yield each statement in the generator expression (created with parameter 'multi=True')
+
             for _ in (self.db.cursor.execute(statement, multi=True)):
+                # yield each statement in the generator expression,
+                # with the parameter 'multi=True'
                 continue
+
         except Error as e:
             print(f"The error '{e}' occurred")
 
-    def select_row(self, table_anchor, selection='*', distinct=True, **claims):
-        """Retrieve a row from the db and bring it back as an instance of an entity.
+    def insert_row(self, table_anchor, row_keys, row_values):
+
+        # format the parameters as cleaned strings inside parenthesis
+        row_keys, row_values = self.format_row_parameters(row_keys, row_values)
+
+        # format the query
+        query = (
+                f"INSERT IGNORE INTO {table_anchor} "
+                f"  {row_keys} "
+                f"  VALUES {row_values} ;"
+        )
+
+        # execute the query
+        try:
+            self.db.cursor.execute(query)
+
+        except Error as e:
+            print(f"The error '{e}' occurred")
+
+    def select_row(self, table_anchor, selection, **claims):
+        """Retrieve rows from the db and bring them back as instances.
 
         table_anchor: the name of the table where is the row that we want
-        selection: the columns with the values of the row that we want (by default, we take all columns)
+        selection: the columns with the values of the row that we want
         **claims: optional components to build the query to the db
         """
 
@@ -217,7 +274,7 @@ class EntityManager:
         claim = []
 
         # SELECT
-        claim_select = f"SELECT DISTINCT " if distinct is True else f"SELECT "
+        claim_select = f"SELECT DISTINCT "
 
         headers = [str(head) for head in selection]
         columns = [f"{table_anchor}.{col}" for col in headers]
@@ -232,19 +289,47 @@ class EntityManager:
 
         # JOIN
         if 'join' in claims:
+
+            # join parameters:
+            table_adjunct = claims['join']['table_adjunct']
+            row_key_adjunct = claims['join']['row_key_adjunct']
+            row_key_anchor = claims['join']['row_key_anchor']
+
+            # join segment:
             claim_join = (
-                    f"INNER JOIN {claims['join']['table_adjunct']} "
-                    f"ON {claims['join']['table_adjunct']}.{claims['join']['row_key']} "
-                    f"= {table_anchor}.{claims['join']['row_key']} "
+                    f"INNER JOIN {table_adjunct} "
+                    f"ON {table_adjunct}.{row_key_adjunct} "
+                    f"= {table_anchor}.{row_key_anchor} "
             )
+
             claim.append(claim_join)
 
         # WHERE
         if 'where' in claims:
+
+            # where parameters:
+            table_adjunct = claims['where']['table_adjunct']
+            row_key = claims['where']['row_key']
+            if type(claims['where']['row_value']) is int:
+                single_value = "('" + str(claims['where']['row_value']) + "')"
+                row_value = single_value
+            elif type(claims['where']['row_value']) is list and len(
+                    claims['where']['row_value']
+            ) == 1:
+                single_list_value = (
+                        "('" + str(claims['where']['row_value'][0]) + "')"
+                )
+                row_value = single_list_value
+            else:
+                multiple_values = str(tuple(claims['where']['row_value']))
+                row_value = multiple_values
+
+            # where segment
             claim_where = (
-                    f"WHERE {claims['where']['table_adjunct']}.{claims['where']['row_key']} "
-                    f"= {claims['where']['row_value']} "
+                    f"WHERE {table_adjunct}.{row_key} "
+                    f"IN {row_value} "
             )
+
             claim.append(claim_where)
 
         # ORDER
@@ -264,15 +349,21 @@ class EntityManager:
             self.db.cursor.execute(statement)
             records = self.db.cursor.fetchall()
 
-            # records is a list
+            # transform the rows in instances and return them in a list
+            instances_list = []
             for record in records:
 
-                # retrieve the elements from each record, that will serve as values for the next method
+                # retrieve the elements from each record,
+                # that will serve as values for the next method
                 values = list(record)
                 attrs = dict(zip(headers, values))
 
                 # create an instance with elements found in this row of th db
-                return self.create_instance(table_anchor, **attrs)
+                instances_list.append(
+                        self.create_instance(table_anchor, **attrs)
+                )
+
+            return instances_list
 
         except Error as e:
             print(f"The error '{e}' occurred")

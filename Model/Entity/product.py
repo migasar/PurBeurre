@@ -22,12 +22,13 @@ class Product:
             if key in whitelist:
                 setattr(self, key, value)
             else:
-                raise ValueError(f"Unexpected kwarg value: {value}")
+                raise ValueError("Unexpected kwarg value")
 
     def __repr__(self):
         """Create a more usable representation of the object.
 
-        The idea with this representation is to call a string similar to the command used to instanciate the object.
+        The idea with this representation is to call a string similar
+        to the command used to instanciate the object.
         """
 
         values_list = [
@@ -40,7 +41,9 @@ class Product:
                 f"({', '.join([v for v in values_list])})")
 
     def get_items(self):
-        """Create a list of tuples with the name and the value of each attribute (which are not empty)."""
+        """Create a list of tuples
+        with the name and the value of each attribute (which are not empty).
+        """
 
         return [
                 (k, v)

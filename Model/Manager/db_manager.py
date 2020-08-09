@@ -2,10 +2,6 @@
 
 From the creation of the database and its components,
 to the insertion of the data in the database.
-
-Part of the ORM (object-relational mapping):
- - The ORM handles every transaction between the database of the program and the other elements of the program.
- - Every coding elements with SQL should be regrouped in the ORM.
 """
 
 import mysql.connector as mysql
@@ -36,7 +32,13 @@ class Borg:
 class DBManager(Borg):
     """Create the database or initiate its connection, if it already exists."""
 
-    def __init__(self, host_name=None, user_name=None, user_password=None, db_name=None):
+    def __init__(
+            self,
+            host_name=None,
+            user_name=None,
+            user_password=None,
+            db_name=None
+    ):
 
         # ensure that only one instance of 'DBManager' is at play
         Borg.__init__(self)
@@ -50,14 +52,17 @@ class DBManager(Borg):
             user_password = credential.DB_PASSWORD
 
         # parameters of the connection
-        self.host_name = host_name  # if host_name is not None else credential.DB_HOST
-        self.user_name = user_name  # if user_name is not None else credential.DB_USER
-        self.user_password = user_password  # if user_password is not None else credential.DB_PASSWORD
+        self.host_name = host_name
+        self.user_name = user_name
+        self.user_password = user_password
         self.db_name = db_name
 
         # initiate a connection to the server
         self.connection = self.set_connection()
         self.cursor = self.connection.cursor()
+
+        # initiate a connection to the db
+        self.check_database()
 
     def set_connection(self):
         """Create a connection with MySQL server.
@@ -90,7 +95,8 @@ class DBManager(Borg):
     def build_database(self, filepath=constant.SCHEMA_PATH):
         """Initiate the creation of the database.
 
-        Take the path to a sql file as variable, and use the file as a schema to build the database.
+        Take the path to a sql file as variable,
+        and use the file as a schema to build the database.
         """
 
         # open the sql file as an object to pass its content to other methods
@@ -111,3 +117,26 @@ class DBManager(Borg):
         self.cursor = self.connection.cursor()
 
         return self.connection, self.cursor
+
+    def check_database(self, db_name=None):
+        """Check if the database already exists.
+
+        Otherwise, it calls the method build_database.
+        """
+
+        if db_name is None:
+            db_name = constant.DB_NAME
+
+        self.cursor.execute("SHOW DATABASES")
+        databs = self.cursor.fetchall()
+        databases = [d[0] for d in databs]
+
+        # create the db if it doesn't exist
+        if db_name not in databases:
+            self.build_database()
+
+        # otherwise, set the connection to the db
+        else:
+            self.db_name = db_name
+            self.connection = self.set_connection()
+            self.cursor = self.connection.cursor()

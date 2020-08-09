@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS `store_product` (
 
 DROP TABLE IF EXISTS `favorite_product` ;
 CREATE TABLE IF NOT EXISTS `favorite_product` (
-  `id_base_product` int(11) NOT NULL,
-  `id_substitute_product` int(11) NOT NULL,
+  id_base_product int(11) NOT NULL,
+  id_substitute_product int(11) NOT NULL,
   PRIMARY KEY (`id_base_product`,`id_substitute_product`),
   KEY `fk_favorite_product1_idx` (`id_base_product`),
   KEY `fk_favorite_product2_idx` (`id_substitute_product`),
