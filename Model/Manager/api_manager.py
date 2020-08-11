@@ -30,7 +30,7 @@ class APIManager:
         # repository of the result from the call to the API
         self.products = []
 
-    def download_data(self, entity_manager=EntityManager()):
+    def download_data(self):
         """Call an entity manager to insert a load of data in the DB."""
 
         # call the method 'get_load()' if it has not been done yet
@@ -38,7 +38,7 @@ class APIManager:
             self.get_load()
 
         # call the method 'insert_all' to save the data in the database
-        return entity_manager.insert_load(self.products)
+        return self.entity_manager.insert_load(self.products)
 
     def get_load(self):
         """Make a get request to the API, and fetch specific data.
