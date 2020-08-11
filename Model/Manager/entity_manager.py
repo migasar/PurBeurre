@@ -21,7 +21,6 @@ class EntityManager:
     def __init__(self, db=DBManager()):
         self.db = db
         self.connection = db.connection
-        self.cursor = db.cursor
 
     @staticmethod
     def create_instance(entity, **attributes):
@@ -49,7 +48,9 @@ class EntityManager:
                 'store': Store
         }
 
-        # loop over the dictionary to revise the names of the attributes
+        # loop over the dictionary to review the names of the attributes
+        # to cluster all the denominations of id_product in the db
+        # and to normalize them to id_product for the creation of instance
         if 'id_substitute_product' in attributes.keys():
             attributes['id_product'] = attributes.pop('id_substitute_product')
 
@@ -197,7 +198,7 @@ class EntityManager:
     def insert_load(self, payload):
         """Insert rows in a table.
 
-        The method 'insert_all' orchestrates the call to the methods
+        The method 'insert_load' orchestrates the call to the methods
         to create a query to insert a row in the db
         for each instance in 'payload.'
 
@@ -218,7 +219,7 @@ class EntityManager:
                 )
 
         else:
-            # in case payload is a single instance
+            # in case, the payload is a single instance
             queries.append(
                     self.format_query_insert_load(payload)
             )
@@ -235,10 +236,14 @@ class EntityManager:
             # join in an unique string, all the elements of the list of queries
             statement = str('; '.join(request))
 
-            for _ in (self.db.cursor.execute(statement, multi=True)):
+            cursor = self.connection.cursor()
+            for _ in (cursor.execute(statement, multi=True)):
                 # yield each statement in the generator expression,
                 # with the parameter 'multi=True'
                 continue
+
+            self.connection.commit()
+            cursor.close()
 
         except Error as e:
             print(f"The error '{e}' occurred")
@@ -257,7 +262,11 @@ class EntityManager:
 
         # execute the query
         try:
-            self.db.cursor.execute(query)
+            cursor = self.connection.cursor()
+            cursor.execute(query)
+
+            self.connection.commit()
+            cursor.close()
 
         except Error as e:
             print(f"The error '{e}' occurred")
@@ -310,9 +319,11 @@ class EntityManager:
             # where parameters:
             table_adjunct = claims['where']['table_adjunct']
             row_key = claims['where']['row_key']
+
             if type(claims['where']['row_value']) is int:
                 single_value = "('" + str(claims['where']['row_value']) + "')"
                 row_value = single_value
+
             elif type(claims['where']['row_value']) is list and len(
                     claims['where']['row_value']
             ) == 1:
@@ -320,11 +331,12 @@ class EntityManager:
                         "('" + str(claims['where']['row_value'][0]) + "')"
                 )
                 row_value = single_list_value
+
             else:
                 multiple_values = str(tuple(claims['where']['row_value']))
                 row_value = multiple_values
 
-            # where segment
+            # where segment:
             claim_where = (
                     f"WHERE {table_adjunct}.{row_key} "
                     f"IN {row_value} "
@@ -337,7 +349,7 @@ class EntityManager:
             claim_order = f"ORDER BY {claims['order']} "
             claim.append(claim_order)
 
-        # punctuation
+        # punctuation to indicate the end of the query
         claim_tail = ";"
         claim.append(claim_tail)
 
@@ -346,8 +358,11 @@ class EntityManager:
 
         # execute the query
         try:
-            self.db.cursor.execute(statement)
-            records = self.db.cursor.fetchall()
+            cursor = self.connection.cursor()
+            cursor.execute(statement)
+
+            records = cursor.fetchall()
+            cursor.close()
 
             # transform the rows in instances and return them in a list
             instances_list = []
