@@ -59,7 +59,6 @@ class DBManager(Borg):
 
         # initiate a connection to the server
         self.connection = self.set_connection()
-        self.cursor = self.connection.cursor()
 
         # initiate a connection to the db
         self.check_database()
@@ -78,6 +77,7 @@ class DBManager(Borg):
                         user=self.user_name,
                         passwd=self.user_password
                 )
+
             # create a connection specifically to a database
             else:
                 self.connection = mysql.connect(
@@ -91,6 +91,33 @@ class DBManager(Borg):
             print(f"The error'{e}' occured")
 
         return self.connection
+
+    def check_database(self, db_name=None):
+        """Check if the database already exists.
+
+        Otherwise, it calls the method build_database.
+        """
+
+        if db_name is None:
+            db_name = constant.DB_NAME
+
+        cursor = self.connection.cursor()
+        cursor.execute("SHOW DATABASES")
+
+        databs = cursor.fetchall()
+        databases = [d[0] for d in databs]
+
+        self.connection.commit()
+        cursor.close()
+
+        # create the db if it doesn't exist
+        if db_name not in databases:
+            self.build_database()
+
+        # otherwise, set the connection to the db
+        else:
+            self.db_name = db_name
+            self.connection = self.set_connection()
 
     def build_database(self, filepath=constant.SCHEMA_PATH):
         """Initiate the creation of the database.
@@ -108,35 +135,25 @@ class DBManager(Borg):
             sql_file = sql_file.split(';')
 
         # execute, one by one, every query from the schema
+
+        cursor = self.connection.cursor()
         for line in sql_file:
-            self.cursor.execute(line)
+            cursor.execute(line)
+
+        self.connection.commit()
+        cursor.close()
 
         # renew set_connection() to initiate a connection with the database
         self.db_name = constant.DB_NAME
         self.connection = self.set_connection()
-        self.cursor = self.connection.cursor()
 
-        return self.connection, self.cursor
+        return self.connection
 
-    def check_database(self, db_name=None):
-        """Check if the database already exists.
+    def close_connection(self):
+        """Close the connection with MySQL server."""
 
-        Otherwise, it calls the method build_database.
-        """
+        try:
+            self.connection.close()
 
-        if db_name is None:
-            db_name = constant.DB_NAME
-
-        self.cursor.execute("SHOW DATABASES")
-        databs = self.cursor.fetchall()
-        databases = [d[0] for d in databs]
-
-        # create the db if it doesn't exist
-        if db_name not in databases:
-            self.build_database()
-
-        # otherwise, set the connection to the db
-        else:
-            self.db_name = db_name
-            self.connection = self.set_connection()
-            self.cursor = self.connection.cursor()
+        except Error as e:
+            print(f"The error'{e}' occured")
